@@ -89,7 +89,7 @@ cd web; $env:EMU_PORTS="9099,8080"; node scripts\check-tenant-rules.mjs   # emul
 |---|---|
 | `GRAPH_VERSION` | Meta Graph API version, default `v21.0` |
 | `META_APP_ID` | Same Meta App ID as above |
-| `APP_URL` | Public web address, e.g. `https://kasa-prod.web.app` (Paystack return link) |
+| `APP_URL` | Public web address, e.g. `https://kasa-dp-prod.web.app` (Paystack return link) |
 
 **Secrets** (Secret Manager; set each once, before the first deploy)
 
@@ -99,10 +99,14 @@ firebase functions:secrets:set WHATSAPP_VERIFY_TOKEN  # any long random string; 
 firebase functions:secrets:set PAYSTACK_SECRET_KEY    # sk_test_... first; "unset" until you take payments
 ```
 
+## Live deployment
+
+Project `kasa-dp-prod`, live at https://kasa-dp-prod.web.app. Redeploy with `firebase deploy`. Production web settings live in the gitignored `web\.env.production.local`.
+
 ## Deploy to a new Firebase project
 
-1. Create the project (Console or `firebase projects:create kasa-prod`), switch it to the **Blaze** plan, enable **Authentication** (Email/Password and Google), **Firestore** (region `europe-west1` or close), **Storage**.
-2. Update `.firebaserc` if your project id is not `kasa-prod`. Add a Web app and copy its config into `web\.env.local` (with `VITE_USE_FIREBASE_EMULATORS=false`).
+1. Create the project (Console or `firebase projects:create your-project-id`), switch it to the **Blaze** plan, enable **Authentication** (Email/Password and Google), **Firestore** (region `europe-west1` or close), **Storage**.
+2. Update `.firebaserc` with your project id. Add a Web app and copy its config into `web\.env.local` (with `VITE_USE_FIREBASE_EMULATORS=false`).
 3. Create `functions\.env` (table above) and set the three secrets.
 4. `firebase deploy` (rules, indexes, storage, functions and hosting; builds run automatically).
 5. Make yourself platform admin: in Firestore create `platformAdmins/{your uid}` with any field.

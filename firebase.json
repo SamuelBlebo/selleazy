@@ -46,7 +46,7 @@
         "test"
       ],
       "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run build"
+        "npm --prefix functions run build"
       ]
     }
   ],
