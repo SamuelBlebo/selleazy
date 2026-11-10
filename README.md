@@ -119,6 +119,22 @@ Project `kasa-dp-prod`, live at https://kasa-dp-prod.web.app. Redeploy with `fir
 4. Start **Business Verification** in Meta Business Manager early; it takes days and is needed before outside merchants can connect.
 5. Each merchant then clicks Settings → WhatsApp → **Continue with Facebook**. The token is stored only in `whatsappAccounts/`, which no browser can read.
 
+### Link a number without Embedded Signup (your own number, Meta's test number)
+
+Before Business Verification, or for a demo, link a number to a business directly. The merchant must already have signed up and finished onboarding. You need a service account key (Firebase console → Project settings → Service accounts; keep it outside the repo) and a **System User permanent token** (Business settings → System users) with `whatsapp_business_messaging` and `whatsapp_business_management`.
+
+```powershell
+cd functions
+$env:GOOGLE_APPLICATION_CREDENTIALS="C:\keys\kasa-dp-prod.json"; $env:GCLOUD_PROJECT="kasa-dp-prod"
+$env:OWNER_PHONE="0240000001"; $env:PHONE_NUMBER_ID="..."; $env:WABA_ID="..."; $env:WA_TOKEN="..."
+$env:DRY_RUN="1"; npm run connect:whatsapp      # checks with Meta, writes nothing
+Remove-Item Env:DRY_RUN; npm run connect:whatsapp
+```
+
+Use `OWNER_EMAIL` instead of `OWNER_PHONE` if the merchant signed up with Google or email. If PowerShell says "running scripts is disabled", use `npm.cmd` and `firebase.cmd`. Meta's test number only replies to phones added to its "To" list (WhatsApp → API Setup).
+
+Add `WA_PIN` (6-digit two-step PIN) the first time you use a number you added yourself in WhatsApp Manager; it registers the number for the Cloud API. `DISCONNECT=1` unlinks. The webhook still needs the real `META_APP_SECRET` set, or every incoming message is rejected.
+
 Customers who messaged in the last 24 hours get free-form replies; older ones need Meta-approved templates (promotions included).
 
 ## Security

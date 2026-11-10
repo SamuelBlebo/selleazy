@@ -11,7 +11,8 @@
     "deploy": "firebase deploy --only functions",
     "typecheck": "tsc --noEmit",
     "test": "tsc && node --test test/logic.test.mjs",
-    "seed:demo": "node scripts/seedDemoMerchant.js"
+    "seed:demo": "node scripts/seedDemoMerchant.js",
+    "connect:whatsapp": "node scripts/connectWhatsappNumber.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.2",

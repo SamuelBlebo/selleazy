@@ -19,3 +19,8 @@ web/test-results/
 functions/.env.local
 functions/.env
 firebase.alt-ports.json
+
+# Service account keys
+*service-account*.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
