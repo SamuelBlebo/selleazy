@@ -87,7 +87,7 @@ function Shell() {
       <nav aria-label="Main" className="hidden flex-col overflow-y-auto bg-brand px-3 pb-3.5 pt-[18px] text-brand-on lg:flex">
         <NavLink to="/today" className="flex items-center gap-2.5 px-2.5 pb-[18px]">
           <Mark size={30} />
-          <span className="font-cap text-2xl font-bold">Kasa</span>
+          <span className="font-cap text-2xl font-bold">SellEazy</span>
         </NavLink>
         <div className="mx-1 mb-4 rounded-lg bg-brand-2 px-3 py-2.5">
           <p className="truncate text-sm font-semibold">{org!.name}</p>
@@ -126,14 +126,14 @@ function Shell() {
         <header className="flex shrink-0 items-center justify-between gap-3 bg-brand px-4 py-2.5 text-brand-on lg:hidden">
           <NavLink to="/today" className="flex items-center gap-2">
             <Mark size={26} />
-            <span className="font-cap text-xl font-bold">Kasa</span>
+            <span className="font-cap text-xl font-bold">SellEazy</span>
           </NavLink>
           <span className="truncate text-sm text-brand-dim">{org!.name}</span>
         </header>
         <Selvedge />
         {org!.suspended && (
           <div className="bg-danger px-4 py-2 text-center text-sm font-semibold text-white">
-            Your business is suspended{org!.suspendedReason ? `: ${org!.suspendedReason}` : '.'} WhatsApp orders are paused. Contact Kasa support.
+            Your business is suspended{org!.suspendedReason ? `: ${org!.suspendedReason}` : '.'} WhatsApp orders are paused. Contact SellEazy support.
           </div>
         )}
         <main id="main" className="min-h-0 flex-1 overflow-y-auto">

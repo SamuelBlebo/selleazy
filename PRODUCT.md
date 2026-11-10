@@ -18,7 +18,7 @@ End customers never make accounts; they only message the business on WhatsApp.
 
 ## Product Purpose
 
-Kasa ("speak/talk" in Twi) lets a merchant sell through chat: connect a WhatsApp Business number, list products, and every order, customer, stock movement and payment the chat produces lands in one dashboard. Success: a merchant runs a full day of WhatsApp sales without a notebook.
+SellEazy ("speak/talk" in Twi) lets a merchant sell through chat: connect a WhatsApp Business number, list products, and every order, customer, stock movement and payment the chat produces lands in one dashboard. Success: a merchant runs a full day of WhatsApp sales without a notebook.
 
 ## Positioning
 
@@ -37,7 +37,7 @@ Multi-tenant: Organization → users, products, inventory, customers, orders, pa
 
 ## Brand Commitments
 
-Name: Kasa. No logo or palette exists yet.
+Name: SellEazy. No logo or palette exists yet.
 
 ## Evidence on Hand
 

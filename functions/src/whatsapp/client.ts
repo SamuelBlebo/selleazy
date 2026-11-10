@@ -5,7 +5,7 @@ import type { WhatsappCredentials } from '../domain/model';
 import { customerRef, messagesRef } from '../tenant';
 
 /**
- * The only place Kasa calls Meta's WhatsApp Cloud API (ported from
+ * The only place SellEazy calls Meta's WhatsApp Cloud API (ported from
  * OrderFlow's functions/src/whatsapp/client.ts and worker/src/whatsapp.ts).
  */
 export interface SendResult {
@@ -43,6 +43,13 @@ export interface ListRow {
   description?: string;
 }
 
+export interface CarouselCard {
+  imageUrl: string;
+  body: string;
+  buttonId: string;
+  buttonTitle: string;
+}
+
 export const wa = {
   text: (creds: WhatsappCredentials, to: string, body: string) =>
     send(creds, { to, type: 'text', text: { preview_url: false, body: truncate(body, 4096) } }),
@@ -70,14 +77,35 @@ export const wa = {
       },
     }),
 
-  buttons: (creds: WhatsappCredentials, to: string, o: { body: string; buttons: Array<{ id: string; title: string }> }) =>
+  buttons: (creds: WhatsappCredentials, to: string, o: { body: string; buttons: Array<{ id: string; title: string }>; imageUrl?: string }) =>
     send(creds, {
       to,
       type: 'interactive',
       interactive: {
         type: 'button',
+        ...(o.imageUrl ? { header: { type: 'image', image: { link: o.imageUrl } } } : {}),
         body: { text: truncate(o.body, 1024) },
         action: { buttons: o.buttons.slice(0, 3).map((b) => ({ type: 'reply', reply: { id: b.id.slice(0, 200), title: truncate(b.title, 20) } })) },
+      },
+    }),
+
+  /** Swipeable photo cards, 2 to 10, each with one quick-reply button. Taps arrive as button_reply. */
+  carousel: (creds: WhatsappCredentials, to: string, o: { body: string; cards: CarouselCard[] }) =>
+    send(creds, {
+      to,
+      type: 'interactive',
+      interactive: {
+        type: 'carousel',
+        body: { text: truncate(o.body, 1024) },
+        action: {
+          cards: o.cards.slice(0, 10).map((c, i) => ({
+            card_index: i,
+            type: 'cta_url',
+            header: { type: 'image', image: { link: c.imageUrl } },
+            body: { text: truncate(c.body, 160) },
+            action: { buttons: [{ type: 'quick_reply', quick_reply: { id: c.buttonId.slice(0, 256), title: truncate(c.buttonTitle, 20) } }] },
+          })),
+        },
       },
     }),
 
@@ -107,8 +135,12 @@ export class Outbox {
     return this.log(await wa.list(this.creds, this.waId, o), 'list', o.body, { button: o.button, options: o.rows.map((r) => r.title) });
   }
 
-  async buttons(o: { body: string; buttons: Array<{ id: string; title: string }> }) {
+  async buttons(o: { body: string; buttons: Array<{ id: string; title: string }>; imageUrl?: string }) {
     return this.log(await wa.buttons(this.creds, this.waId, o), 'buttons', o.body, { options: o.buttons.map((b) => b.title) });
+  }
+
+  async carousel(o: { body: string; cards: CarouselCard[] }) {
+    return this.log(await wa.carousel(this.creds, this.waId, o), 'carousel', o.body, { options: o.cards.map((c) => c.body.split('\n')[0].replace(/\*/g, '')) });
   }
 
   private async log(result: SendResult, type: string, body: string, extra: Record<string, unknown> | null) {

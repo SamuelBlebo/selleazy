@@ -11,7 +11,7 @@ export interface PlaceOrderInput {
   lines: Array<{ itemId: string; quantity: number }>;
   fulfilment: Fulfilment;
   address: string | null;
-  /** What the customer asked for, in their words ("Saturday 10am"), and Kasa's best reading of it. */
+  /** What the customer asked for, in their words ("Saturday 10am"), and SellEazy's best reading of it. */
   appointment: { requested: string | null; at: Date | null } | null;
   channel: OrderChannel;
   note: string | null;

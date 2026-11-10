@@ -33,7 +33,7 @@ async function claimNumber(orgId: string, input: { phoneNumberId: string; busine
     const account = whatsappAccountRef(input.phoneNumberId);
     const existing = await tx.get(account);
     if (existing.exists && existing.get('organizationId') !== orgId) {
-      throw new HttpsError('already-exists', 'That number is connected to another business on Kasa.');
+      throw new HttpsError('already-exists', 'That number is connected to another business on SellEazy.');
     }
     tx.set(account, {
       organizationId: orgId,
@@ -68,7 +68,7 @@ export const completeWhatsappSignup = onCall({ secrets: [META_APP_SECRET] }, asy
     'Check the values from the signup popup.',
   );
   if (!META_APP_ID.value() || !META_APP_SECRET.value()) {
-    throw new HttpsError('failed-precondition', 'WhatsApp connection is not set up on this Kasa server yet.');
+    throw new HttpsError('failed-precondition', 'WhatsApp connection is not set up on this SellEazy server yet.');
   }
 
   const tokenUrl = new URL(graph('oauth/access_token'));
@@ -123,7 +123,7 @@ export const sendTestMessage = onCall(async (request) => {
   const { to } = parse(z.object({ to: z.string().regex(/^\+?[0-9\s-]{9,17}$/) }), request.data, 'Enter a valid phone number.');
   const creds = await loadCredentialsForOrg(orgId);
   if (!creds) throw new HttpsError('failed-precondition', 'Connect a WhatsApp number first.');
-  const result = await wa.text(creds, toWaId(to), 'Your Kasa connection is working. Customers can now order from this number.');
+  const result = await wa.text(creds, toWaId(to), 'Your SellEazy connection is working. Customers can now order from this number.');
   if (!result.ok) throw new HttpsError('internal', 'WhatsApp would not accept that message. Test numbers must be on your allowed list in Meta.');
   return { ok: true as const };
 });

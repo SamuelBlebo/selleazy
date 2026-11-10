@@ -1,7 +1,7 @@
 import type { Timestamp } from 'firebase/firestore';
 
 /**
- * Kasa's tenant model, web side. Mirrors functions/src/domain/model.ts —
+ * SellEazy's tenant model, web side. Mirrors functions/src/domain/model.ts —
  * separate deployables, no shared workspace, so keep both in step.
  * Money is integer pesewas in every field ending `Minor`.
  */

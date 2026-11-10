@@ -26,7 +26,7 @@ export function SignupPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight">Create your Kasa account</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Create your SellEazy account</h1>
       <p className="mt-1 text-sm text-muted">Free for your first 15 orders every month. No card needed.</p>
       <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
         <Input label="Your name" autoComplete="name" error={errors.fullName?.message} {...register('fullName')} />

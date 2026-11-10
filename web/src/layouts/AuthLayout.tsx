@@ -12,7 +12,7 @@ export function AuthLayout() {
             Your customers already message you. Let them order and book there too.
           </p>
           <p className="mt-4 text-brand-dim">
-            Add your products or services once. Kasa answers the chat, takes the order or booking,
+            Add your products or services once. SellEazy answers the chat, takes the order or booking,
             collects the MoMo reference and keeps your stock right. No app or account for the customer.
           </p>
         </div>

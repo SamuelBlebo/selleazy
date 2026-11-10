@@ -136,7 +136,7 @@ export function MarketingLayout() {
             </div>
           </div>
 
-          <p className="mt-10 text-xs text-muted">© {new Date().getFullYear()} Kasa. All rights reserved.</p>
+          <p className="mt-10 text-xs text-muted">© {new Date().getFullYear()} SellEazy. All rights reserved.</p>
         </div>
       </footer>
     </div>

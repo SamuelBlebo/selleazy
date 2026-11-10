@@ -56,7 +56,7 @@ export function PaymentsPage() {
             <li>Open the MoMo SMS on the phone that received it.</li>
             <li>Find the same Transaction ID.</li>
             <li>Make sure the amount matches.</li>
-            <li>Tap Verify. Kasa confirms the order and thanks the customer.</li>
+            <li>Tap Verify. SellEazy confirms the order and thanks the customer.</li>
           </ol>
           <p className="mt-4 rounded-lg border border-dashed border-line2 p-3 text-xs text-muted">
             Automatic checks for MTN MoMo, Telecel Cash and AirtelTigo Money will plug in here later.

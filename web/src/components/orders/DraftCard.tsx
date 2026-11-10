@@ -10,7 +10,7 @@ import { toMessage } from '@/utils/errors';
 import { cedis, time, toDatetimeLocalInput } from '@/utils/format';
 
 /**
- * A typed order Kasa read from chat (ShopFlow's "draft, human confirms").
+ * A typed order SellEazy read from chat (ShopFlow's "draft, human confirms").
  * Nothing is created until a person checks the items and taps Create.
  */
 export function DraftCard({ draft }: { draft: WithId<DraftOrder> }) {
@@ -55,9 +55,9 @@ export function DraftCard({ draft }: { draft: WithId<DraftOrder> }) {
   };
 
   return (
-    <div className="mx-auto my-2.5 w-full max-w-[560px] overflow-hidden rounded-2xl border border-accent bg-surface shadow-card" role="group" aria-label="Order Kasa read from the message">
+    <div className="mx-auto my-2.5 w-full max-w-[560px] overflow-hidden rounded-2xl border border-accent bg-surface shadow-card" role="group" aria-label="Order SellEazy read from the message">
       <div className="flex items-center justify-between gap-3 border-b-[3px] border-double border-accent-soft bg-[#FDF5E2] px-4 py-2 font-cap text-[11px] font-semibold uppercase tracking-[0.13em] text-accent-ink">
-        <span className="flex items-center gap-2"><Icon name="spark" className="h-3.5 w-3.5" /> Kasa read this as an order · only you see this</span>
+        <span className="flex items-center gap-2"><Icon name="spark" className="h-3.5 w-3.5" /> SellEazy read this as an order · only you see this</span>
         <span className="tabular">{time(draft.createdAt)}</span>
       </div>
       <div className="p-4">
@@ -83,12 +83,12 @@ export function DraftCard({ draft }: { draft: WithId<DraftOrder> }) {
         </div>
         <div className="mt-2 flex gap-2">
           <select value={addId} onChange={(e) => setAddId(e.target.value)} className="h-9 min-w-0 flex-1 rounded-full border border-line2 bg-white px-3 text-sm" aria-label="Add an item">
-            <option value="">Add something Kasa missed…</option>
+            <option value="">Add something SellEazy missed…</option>
             {live.items.filter((i) => i.active && !lines.some((l) => l.itemId === i.id)).map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
           </select>
           <Button size="sm" variant="secondary" disabled={!addId} onClick={() => { setLines([...lines, { itemId: addId, quantity: 1 }]); setAddId(''); }}>Add</Button>
         </div>
-        {draft.unmatched.length > 0 && <p className="mt-2 text-xs text-muted">Words Kasa didn't recognise: {draft.unmatched.join(', ')}</p>}
+        {draft.unmatched.length > 0 && <p className="mt-2 text-xs text-muted">Words SellEazy didn't recognise: {draft.unmatched.join(', ')}</p>}
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Select label="How" value={fulfilment} onChange={(e) => setFulfilment(e.target.value as Fulfilment)}>

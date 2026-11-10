@@ -171,7 +171,7 @@ export function LoginPage() {
       <p className="mt-6 text-sm text-muted">
         New here?{' '}
         <Link to="/signup" className="font-semibold text-brand-ink underline">
-          Create your Kasa account
+          Create your SellEazy account
         </Link>
       </p>
     </div>

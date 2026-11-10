@@ -1,5 +1,5 @@
 /**
- * Kasa Cloud Functions. Everything that touches a Meta or Paystack secret,
+ * SellEazy Cloud Functions. Everything that touches a Meta or Paystack secret,
  * moves money, changes stock, or writes orders/customers lives here — never
  * in the browser. This file only re-exports.
  */
@@ -20,7 +20,7 @@ export { whatsappWebhook, processWhatsappEvent } from './whatsapp/webhook';
 export { completeWhatsappSignup, connectWhatsappManual, disconnectWhatsapp, sendTestMessage, sendReply } from './http/whatsapp';
 export { sendBroadcast } from './http/customers';
 
-// Kasa's own billing
+// SellEazy's own billing
 export { changePlan, billingWebhook } from './http/billing';
 
 // Platform admin

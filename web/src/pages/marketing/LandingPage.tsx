@@ -10,7 +10,7 @@ const WHO = [
 
 const STEPS = [
   { title: 'Add what you sell', body: 'Products or services, with prices and photos. Takes a few minutes.' },
-  { title: 'Customers chat to order', body: 'They message your WhatsApp number. Kasa shows your catalogue, takes the order or booking, and asks for MoMo.' },
+  { title: 'Customers chat to order', body: 'They message your WhatsApp number. SellEazy shows your catalogue, takes the order or booking, and asks for MoMo.' },
   { title: 'You confirm and get paid', body: 'Check the MoMo Transaction ID, tap Verify, and the order moves along with WhatsApp updates to the customer.' },
 ];
 
@@ -22,7 +22,7 @@ export function LandingPage() {
         <div>
           <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">Your customers already message you. Let them order and book there too.</h1>
           <p className="mt-5 text-lg text-muted">
-            Kasa turns your WhatsApp number into a shop counter. Orders, bookings, MoMo payments, stock and customers, all in one place. Customers never download an app or make an account.
+            SellEazy turns your WhatsApp number into a shop counter. Orders, bookings, MoMo payments, stock and customers, all in one place. Customers never download an app or make an account.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/signup"><Button>Start free</Button></Link>

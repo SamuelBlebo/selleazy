@@ -31,7 +31,7 @@ async function expect(label, shouldSucceed, fn) {
 }
 
 // 1. The demo owner (seeded by functions/scripts/seedDemoMerchant.js).
-await signInWithEmailAndPassword(auth, '233240000001@phone.kasa.internal', 'KasaDemo!2026');
+await signInWithEmailAndPassword(auth, '233240000001@phone.kasa.internal', 'SellEazyDemo!2026');
 const me = await getDoc(doc(db, 'users', auth.currentUser.uid));
 const orgId = me.data().orgId;
 const item = (await getDocs(query(collection(db, 'organizations', orgId, 'items'), limit(1)))).docs[0];

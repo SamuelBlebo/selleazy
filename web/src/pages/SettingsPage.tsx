@@ -106,7 +106,7 @@ function BusinessTab() {
         <div>
           <h3 className="mb-1 font-semibold">WhatsApp bot</h3>
           <SettingRow title="Menu bot" hint="Shows your catalogue, builds a cart, takes the address and time."><Switch checked={f.bot.menuEnabled} label="Menu bot" onChange={(v) => setF({ ...f, bot: { ...f.bot, menuEnabled: v } })} /></SettingRow>
-          <SettingRow title="Read typed orders" hint="When a customer types an order in their own words, Kasa drafts it. You always confirm it first."><Switch checked={f.bot.freeTextEnabled} label="Read typed orders" onChange={(v) => setF({ ...f, bot: { ...f.bot, freeTextEnabled: v } })} /></SettingRow>
+          <SettingRow title="Read typed orders" hint="When a customer types an order in their own words, SellEazy drafts it. You always confirm it first."><Switch checked={f.bot.freeTextEnabled} label="Read typed orders" onChange={(v) => setF({ ...f, bot: { ...f.bot, freeTextEnabled: v } })} /></SettingRow>
           <div className="mt-2"><Textarea label="Greeting" value={f.bot.greeting} onChange={(e) => setF({ ...f, bot: { ...f.bot, greeting: e.target.value.slice(0, 500) } })} /></div>
         </div>
         <div className="flex justify-end">
@@ -169,14 +169,14 @@ function WhatsAppTab() {
           </div>
         ) : (
           <div className="max-w-md space-y-4">
-            <p>Use the WhatsApp Business number your customers already message. You'll sign in with Facebook. Kasa never sees your password.</p>
+            <p>Use the WhatsApp Business number your customers already message. You'll sign in with Facebook. SellEazy never sees your password.</p>
             <ol className="list-decimal space-y-1 pl-5 text-sm">
               <li>Log in with the Facebook account that manages your business.</li>
               <li>Pick your business and WhatsApp number (or add one).</li>
-              <li>Done. Kasa starts answering with your catalogue.</li>
+              <li>Done. SellEazy starts answering with your catalogue.</li>
             </ol>
             <WhatsAppConnectButton />
-            <p className="text-xs text-muted">A number connected to Kasa can't be used in the WhatsApp Business phone app at the same time.</p>
+            <p className="text-xs text-muted">A number connected to SellEazy can't be used in the WhatsApp Business phone app at the same time.</p>
           </div>
         )}
       </CardBody>
@@ -264,7 +264,7 @@ function TeamTab() {
             </Select>
             <Button loading={busy} disabled={inv.contact.length < 5} onClick={() => void save(async () => { await inviteMember(inv.contact, inv.role, inv.name || undefined); setInv({ ...inv, contact: '', name: '' }); }, 'Invite saved.')}>Invite</Button>
           </div>
-          <p className="mt-2 text-sm text-muted">They sign up on Kasa with that phone number or email and land straight in {org.name}.</p>
+          <p className="mt-2 text-sm text-muted">They sign up on SellEazy with that phone number or email and land straight in {org.name}.</p>
         </CardBody>
       </Card>
       <Card>

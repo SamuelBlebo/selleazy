@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Seeds a demo merchant on Kasa's model so the dashboard has real-looking
+ * Seeds a demo merchant on SellEazy's model so the dashboard has real-looking
  * data without a WhatsApp connection. Re-runnable: it deletes and rebuilds
  * the demo business each time. All data is made up.
  *
@@ -18,7 +18,7 @@ const admin = require('firebase-admin');
 
 const TYPE = process.env.DEMO_TYPE || 'retail';
 const PHONE = process.env.DEMO_PHONE || '233240000001';
-const PASSWORD = process.env.DEMO_PASSWORD || 'KasaDemo!2026';
+const PASSWORD = process.env.DEMO_PASSWORD || 'SellEazyDemo!2026';
 const EMAIL = `${PHONE}@phone.kasa.internal`; // matches web/src/utils/phone.ts
 
 if (!admin.apps.length) admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });

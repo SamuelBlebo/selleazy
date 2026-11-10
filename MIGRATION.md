@@ -1,14 +1,14 @@
-# Migration notes: ShopFlow + OrderFlow → Kasa
+# Migration notes: ShopFlow + OrderFlow → SellEazy
 
-Kasa is built on **OrderFlow** (React + Vite + Firebase), whose solid code was reused directly. **ShopFlow** (Next.js + NestJS + Postgres/Prisma) contributed features, data-model ideas and business logic, rewritten for Firebase. No ShopFlow code was copied as-is.
+SellEazy is built on **OrderFlow** (React + Vite + Firebase), whose solid code was reused directly. **ShopFlow** (Next.js + NestJS + Postgres/Prisma) contributed features, data-model ideas and business logic, rewritten for Firebase. No ShopFlow code was copied as-is.
 
-Source snapshots: OrderFlow `58e3f47`, ShopFlow `3aafa32`. Commit `854f63c` in this repo is OrderFlow's code unchanged, so every Kasa change after it is a readable diff.
+Source snapshots: OrderFlow `58e3f47`, ShopFlow `3aafa32`. Commit `854f63c` in this repo is OrderFlow's code unchanged, so every SellEazy change after it is a readable diff.
 
 ## From OrderFlow (reused, then adapted)
 
-| Kasa | OrderFlow origin | Change |
+| SellEazy | OrderFlow origin | Change |
 |---|---|---|
-| `web/` structure (services → hooks → pages, typed Firestore paths, contexts, `useCollection`/`useDocument`, toast, error boundary, Zod forms) | `web/src` | Kept; restyled to the Kasa palette; dark mode removed |
+| `web/` structure (services → hooks → pages, typed Firestore paths, contexts, `useCollection`/`useDocument`, toast, error boundary, Zod forms) | `web/src` | Kept; restyled to the SellEazy palette; dark mode removed |
 | Auth: phone + password and Google, phone→synthetic email | `services/auth.service.ts`, `utils/phone.ts` | Org creation moved server-side; Ghana `0XX` numbers normalised |
 | WhatsApp bot (catalogue list, cart, checkout, transactional order) | `worker/src/bot.ts`, `cart.ts`, `orders.ts` | Moved from the Cloudflare Worker to Cloud Functions (Admin SDK); services, bookings, fulfilment choice, MoMo reference capture, typed-order drafts added |
 | Webhook signature check | `worker/src/signature.ts` | Node crypto; durable `webhookEvents` queue with idempotent `create()` |
@@ -27,7 +27,7 @@ Source snapshots: OrderFlow `58e3f47`, ShopFlow `3aafa32`. Commit `854f63c` in t
 
 ## From ShopFlow (rewritten for Firebase)
 
-| Kasa | ShopFlow origin |
+| SellEazy | ShopFlow origin |
 |---|---|
 | Order state machine, one transition table (`functions/src/domain/orderFlow.ts`) | `orders/order-state.machine.ts` |
 | Manual MoMo verification queue with duplicate-reference and amount checks (`services/payments.ts`, `PaymentsPage`) | `payments/payments.service.ts` |
@@ -43,7 +43,7 @@ Source snapshots: OrderFlow `58e3f47`, ShopFlow `3aafa32`. Commit `854f63c` in t
 
 **Not carried over (yet):** QR code screens (`QrCode` model), `DailyRollup` analytics, Clerk auth (Firebase Auth instead), Socket.IO realtime (Firestore listeners instead), Postgres RLS (Firestore rules instead), the demo simulation mode.
 
-## New in Kasa
+## New in SellEazy
 
 - Products **and services** in one catalogue; services have duration and booking times; business types (food / retail / services / mixed) with features (delivery, pickup, bookings, on-site, kitchen).
 - Booking-time reading from chat ("Saturday 10am") for the merchant to confirm (`nlu/when.ts`).
@@ -53,7 +53,7 @@ Source snapshots: OrderFlow `58e3f47`, ShopFlow `3aafa32`. Commit `854f63c` in t
 
 ## Data model mapping
 
-| Kasa (Firestore) | OrderFlow | ShopFlow (Prisma) |
+| SellEazy (Firestore) | OrderFlow | ShopFlow (Prisma) |
 |---|---|---|
 | `organizations/{id}` | `organizations` | `Business` |
 | `users/{uid}` + `organizations/{id}/members` | `users` | `User` + `Membership` |
@@ -65,4 +65,4 @@ Source snapshots: OrderFlow `58e3f47`, ShopFlow `3aafa32`. Commit `854f63c` in t
 | `payments`, `paymentRefs` | — | `Payment` |
 | `whatsappAccounts/{phoneNumberId}` | same | `Business.wa*` columns |
 
-There is no live data to migrate: Kasa uses a new Firebase project.
+There is no live data to migrate: SellEazy uses a new Firebase project.

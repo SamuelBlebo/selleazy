@@ -3,7 +3,7 @@ import type { MomoNetwork } from '../domain/model';
 /**
  * Seam for automatic mobile-money collection. Today every network uses
  * ManualVerification: the customer pays the merchant's own number and a
- * human checks the SMS (services/payments.ts). When Kasa signs up for MTN
+ * human checks the SMS (services/payments.ts). When SellEazy signs up for MTN
  * MoMo Collections, Telecel Cash or AirtelTigo Money APIs, implement this
  * interface for that network, register it below, and call
  * services/payments.ts' verifyPayment from its callback with

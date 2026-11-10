@@ -1,6 +1,6 @@
-# Kasa (web)
+# SellEazy (web)
 
-**Sell through chat.** Kasa is a multi-tenant WhatsApp commerce platform for businesses in Ghana: shops, food sellers and service providers. Customers order, book and pay by MoMo inside WhatsApp, with no app or account. Merchants run everything from this dashboard.
+**Sell through chat.** SellEazy is a multi-tenant WhatsApp commerce platform for businesses in Ghana: shops, food sellers and service providers. Customers order, book and pay by MoMo inside WhatsApp, with no app or account. Merchants run everything from this dashboard.
 
 This is the **web repo**. The merchant mobile app will be a separate repo (`kasa-mobile`, React Native + Expo) with **its own copy** of the Firebase config. Nothing is shared through a monorepo or workspace.
 
@@ -22,16 +22,16 @@ kasa-web/
 |---|---|
 | Any business | Choose **products**, **services**, **food** or **mixed** at signup. The catalogue, wording ("Bookings" vs "Orders", "Menu" vs "Services") and tools follow. |
 | WhatsApp bot | Shows the catalogue as a WhatsApp list, builds a cart, asks delivery / pickup / at-the-shop / at-your-place, takes the address and a requested time for bookings, places the order and sends MoMo payment instructions. |
-| Typed orders | "2 jollof abeg" or "box braids tomorrow 10am" becomes a **draft** a person corrects and confirms. Kasa never places a typed order on its own. |
+| Typed orders | "2 jollof abeg" or "box braids tomorrow 10am" becomes a **draft** a person corrects and confirms. SellEazy never places a typed order on its own. |
 | Chats | WhatsApp-style inbox: unread counts, "waiting for you" when the bot hands over, quick replies, 24-hour reply window shown. |
 | Orders and bookings | One flow for everyone (New → Confirmed → In progress → Ready → Out for delivery → Done), labels per business type. Rider, booking time, notes, timeline. Phone and walk-in orders by hand. |
-| MoMo checks | Customer replies with a Transaction ID; Kasa flags wrong amounts and reused IDs; staff verify or reject. Verified + fully paid confirms the order and thanks the customer. |
+| MoMo checks | Customer replies with a Transaction ID; SellEazy flags wrong amounts and reused IDs; staff verify or reject. Verified + fully paid confirms the order and thanks the customer. |
 | Stock | Set aside when an order is placed, returned on cancel, restock / wastage / count corrections, full history. |
 | Kitchen screen | For food businesses: big tickets with timers. |
 | Customers | History, spend, private notes, promotions (Growth plan and up). |
 | Team | Owner, Manager, Cashier, Kitchen; invite by phone or email. |
 | Plans | Free / Starter GH₵50 / Growth GH₵150 / Pro GH₵350 a month, via Paystack (MoMo or card). Going over the limit never blocks a customer. |
-| Platform admin | `/admin` for Kasa staff: metrics, suspend or delete a merchant, feature flags, audit log. |
+| Platform admin | `/admin` for SellEazy staff: metrics, suspend or delete a merchant, feature flags, audit log. |
 
 ## Run it locally (PowerShell)
 
@@ -57,7 +57,7 @@ cd functions
 $env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"; $env:FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"; $env:GCLOUD_PROJECT="demo-kasa"; $env:DEMO_TYPE="services"
 npm run seed:demo
 
-# Window 3: the web app → http://localhost:5173, sign in with phone 0240000001 / KasaDemo!2026
+# Window 3: the web app → http://localhost:5173, sign in with phone 0240000001 / SellEazyDemo!2026
 cd web; npm run dev
 ```
 
@@ -89,7 +89,7 @@ cd web; $env:EMU_PORTS="9099,8080"; node scripts\check-tenant-rules.mjs   # emul
 |---|---|
 | `GRAPH_VERSION` | Meta Graph API version, default `v21.0` |
 | `META_APP_ID` | Same Meta App ID as above |
-| `APP_URL` | Public web address, e.g. `https://kasa-dp-prod.web.app` (Paystack return link) |
+| `APP_URL` | Public web address, e.g. `https://selleazy.web.app` (Paystack return link) |
 
 **Secrets** (Secret Manager; set each once, before the first deploy)
 
@@ -101,7 +101,7 @@ firebase functions:secrets:set PAYSTACK_SECRET_KEY    # sk_test_... first; "unse
 
 ## Live deployment
 
-Project `kasa-dp-prod`, live at https://kasa-dp-prod.web.app. Redeploy with `firebase deploy`. Production web settings live in the gitignored `web\.env.production.local`.
+Project `kasa-dp-prod`, live at https://selleazy.web.app (the same app also answers at https://kasa-dp-prod.web.app; `firebase.json` deploys to both sites). Redeploy with `firebase deploy`. Production web settings live in the gitignored `web\.env.production.local`.
 
 ## Deploy to a new Firebase project
 
@@ -110,6 +110,7 @@ Project `kasa-dp-prod`, live at https://kasa-dp-prod.web.app. Redeploy with `fir
 3. Create `functions\.env` (table above) and set the three secrets.
 4. `firebase deploy` (rules, indexes, storage, functions and hosting; builds run automatically).
 5. Make yourself platform admin: in Firestore create `platformAdmins/{your uid}` with any field.
+6. Let the Storage rules read Firestore (they check the uploader's role), or every photo upload fails with `storage/unauthorized`: Cloud console → IAM → Grant access → `service-<project-number>@gcp-sa-firebasestorage.iam.gserviceaccount.com` → role **Firebase Rules Firestore Service Agent**.
 
 ## Connect WhatsApp (one-time, platform owner)
 
@@ -158,4 +159,4 @@ Customers who messaged in the last 24 hours get free-form replies; older ones ne
 - WhatsApp message templates for messaging customers after 24 hours.
 - Table QR codes for food businesses (rules exist; no screen yet).
 - Paystack and Meta Embedded Signup have not been exercised against live accounts. Test with test-mode keys and a Meta test number first.
-- Marketing site is client-rendered (limited SEO). Contact emails use `kasa.example`; replace with your domain.
+- Marketing site is client-rendered (limited SEO). Contact emails use `selleazy.example`; replace with your domain.

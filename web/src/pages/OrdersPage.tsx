@@ -86,7 +86,7 @@ export function OrdersPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-line bg-surface"><EmptyState title="No typed orders waiting" description="When a customer types an order in their own words, Kasa drafts it here for you to confirm." /></div>
+          <div className="rounded-2xl border border-line bg-surface"><EmptyState title="No typed orders waiting" description="When a customer types an order in their own words, SellEazy drafts it here for you to confirm." /></div>
         )
       ) : (
         <div className="overflow-hidden rounded-2xl border border-line bg-surface">

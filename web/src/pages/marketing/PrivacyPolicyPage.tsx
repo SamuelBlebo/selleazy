@@ -13,9 +13,9 @@ export function PrivacyPolicyPage() {
         <section>
           <h2 className="text-base font-semibold text-ink">1. Who this applies to</h2>
           <p className="mt-2 text-sm text-muted">
-            This policy covers two kinds of people: merchants who create an Kasa account to run
+            This policy covers two kinds of people: merchants who create a SellEazy account to run
             their shop ("merchants," "you"), and the merchant's own customers who place orders over
-            WhatsApp ("customers"). Kasa acts as the data processor for customer order data on
+            WhatsApp ("customers"). SellEazy acts as the data processor for customer order data on
             behalf of the merchant, who remains responsible for how they use it.
           </p>
         </section>
@@ -29,7 +29,7 @@ export function PrivacyPolicyPage() {
             </li>
             <li>
               <span className="font-medium text-ink">Business data</span> — products, prices, stock levels
-              and order records that you or your customers create while using Kasa.
+              and order records that you or your customers create while using SellEazy.
             </li>
             <li>
               <span className="font-medium text-ink">Customer order data</span> — a customer's WhatsApp
@@ -55,7 +55,7 @@ export function PrivacyPolicyPage() {
         <section>
           <h2 className="text-base font-semibold text-ink">4. Where it's stored and who processes it</h2>
           <p className="mt-2 text-sm text-muted">
-            Kasa is built on Google Firebase (Authentication, Firestore, Cloud Storage and Cloud
+            SellEazy is built on Google Firebase (Authentication, Firestore, Cloud Storage and Cloud
             Functions) for data storage and application logic, and Meta's WhatsApp Cloud API to send and
             receive WhatsApp messages. Both are subject to their own privacy and data-processing terms.
           </p>
@@ -99,8 +99,8 @@ export function PrivacyPolicyPage() {
           <h2 className="text-base font-semibold text-ink">9. Contact</h2>
           <p className="mt-2 text-sm text-muted">
             Questions about this policy can be sent to{' '}
-            <a href="mailto:privacy@kasa.example" className="font-semibold text-brand">
-              privacy@kasa.example
+            <a href="mailto:privacy@selleazy.example" className="font-semibold text-brand">
+              privacy@selleazy.example
             </a>
             .
           </p>

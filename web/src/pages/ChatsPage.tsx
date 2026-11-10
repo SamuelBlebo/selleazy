@@ -230,7 +230,7 @@ function Bubble({ m }: { m: WithId<Message> }) {
   return (
     <div className={cn('flex', out && 'justify-end')}>
       <div className={cn('max-w-[86%] rounded-[10px] px-2.5 pb-1.5 pt-2 shadow-[0_1px_1px_rgba(45,32,8,.08)] sm:max-w-[min(520px,78%)]', out ? 'rounded-tr-sm bg-[#DCEFD0]' : 'rounded-tl-sm bg-surface', m.failed && 'ring-1 ring-danger')}>
-        {out && <span className="block font-cap text-[11px] font-semibold uppercase tracking-[0.1em] text-ok-ink">{m.by === 'bot' ? 'Kasa bot' : 'You'}</span>}
+        {out && <span className="block font-cap text-[11px] font-semibold uppercase tracking-[0.1em] text-ok-ink">{m.by === 'bot' ? 'SellEazy bot' : 'You'}</span>}
         <p className="whitespace-pre-wrap break-words">{m.body ?? <i className="text-muted">({m.type} message)</i>}</p>
         {m.extra?.options && m.extra.options.length > 0 && (
           <div className="-mx-2.5 mt-2 border-t border-black/10 pt-1.5 text-center text-sm font-semibold text-[#1F7A9C]">

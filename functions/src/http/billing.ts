@@ -10,7 +10,7 @@ import { orgRef } from '../tenant';
 import { parse, requireMember } from './guards';
 
 /**
- * Kasa's own subscription billing through Paystack (ported from OrderFlow,
+ * SellEazy's own subscription billing through Paystack (ported from OrderFlow,
  * GHS only — Paystack Ghana accepts MoMo and cards). The plan only changes
  * when Paystack's signed webhook confirms the charge; the browser can never
  * set its own plan (firestore.rules blocks `subscription`).

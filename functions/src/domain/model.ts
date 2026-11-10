@@ -1,5 +1,5 @@
 /**
- * Kasa's tenant model, server side. The web app keeps its own copy in
+ * SellEazy's tenant model, server side. The web app keeps its own copy in
  * web/src/types — two separate deployables, no shared workspace — so a change
  * here must be mirrored there.
  *
@@ -12,7 +12,7 @@
  *     /customers/{waId}                      -> people who messaged the business
  *       /messages/{id}                       -> one WhatsApp conversation, both directions
  *     /orders/{orderId}                      -> orders, product and/or service lines
- *     /draftOrders/{id}                      -> typed orders Kasa read, waiting for a human to confirm
+ *     /draftOrders/{id}                      -> typed orders SellEazy read, waiting for a human to confirm
  *     /payments/{paymentId}                  -> MoMo/cash payments and their verification
  *     /paymentRefs/{network_ref}             -> uniqueness index for MoMo transaction IDs
  *     /sessions/{waId}                       -> WhatsApp bot conversation state

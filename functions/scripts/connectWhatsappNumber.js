@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Platform-owner tool: links a WhatsApp Cloud API number to a Kasa business
+ * Platform-owner tool: links a WhatsApp Cloud API number to a SellEazy business
  * without Embedded Signup. Use it for your own number or Meta's test number
  * while Business Verification is pending. It does what claimNumber() in
  * src/http/whatsapp.ts does: checks the number with Meta, subscribes the app
  * to the WABA's webhooks, then writes whatsappAccounts/{phoneNumberId} and
  * the organization's `whatsapp` field.
  *
- *   OWNER_PHONE    the merchant's Kasa sign-in phone, e.g. 0240000001
+ *   OWNER_PHONE    the merchant's SellEazy sign-in phone, e.g. 0240000001
  *                  (or OWNER_EMAIL for Google / email sign-in, or ORG_ID)
  *   PHONE_NUMBER_ID, WABA_ID   Meta → WhatsApp → API Setup
  *   WA_TOKEN       a System User permanent token with whatsapp_business_messaging
@@ -53,7 +53,7 @@ async function findOrgId() {
     if (err.code === 'auth/user-not-found') return null;
     throw new Error(`Could not reach Firebase Auth (check GOOGLE_APPLICATION_CREDENTIALS and GCLOUD_PROJECT): ${err.message}`);
   });
-  if (!user) throw new Error(`No Kasa account signs in with ${email}. Sign up on the website first.`);
+  if (!user) throw new Error(`No SellEazy account signs in with ${email}. Sign up on the website first.`);
   const orgId = (await db.collection('users').doc(user.uid).get()).get('orgId');
   if (!orgId) throw new Error(`${email} has an account but no business yet. Finish onboarding on the website first.`);
   return orgId;

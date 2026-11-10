@@ -73,7 +73,7 @@ export function AdminLogsPage() {
       )}
 
       <p className="mt-4 text-xs text-muted">
-        This is Kasa's own admin-action audit trail, not raw server logs. For request-level Cloud
+        This is SellEazy's own admin-action audit trail, not raw server logs. For request-level Cloud
         Functions logs, use the Firebase Console's Functions {'>'} Logs tab.
       </p>
     </>

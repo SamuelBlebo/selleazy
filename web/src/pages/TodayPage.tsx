@@ -59,7 +59,7 @@ export function TodayPage() {
   if (canPay && live.paymentsToCheck)
     needs.push({ icon: 'wallet', tone: 'accent', title: `${live.paymentsToCheck} MoMo payment${live.paymentsToCheck > 1 ? 's' : ''} to check`, detail: 'Match each Transaction ID with your MoMo SMS.', to: '/payments', cta: 'Check' });
   if (live.openDrafts)
-    needs.push({ icon: 'spark', tone: 'brand', title: `${live.openDrafts} typed ${live.openDrafts > 1 ? 'orders' : 'order'} to confirm`, detail: 'Kasa read them from chat. Check they are right.', to: '/orders?tab=drafts', cta: 'Review' });
+    needs.push({ icon: 'spark', tone: 'brand', title: `${live.openDrafts} typed ${live.openDrafts > 1 ? 'orders' : 'order'} to confirm`, detail: 'SellEazy read them from chat. Check they are right.', to: '/orders?tab=drafts', cta: 'Review' });
   if (live.needsReply)
     needs.push({ icon: 'chat', tone: 'brand', title: `${live.needsReply} chat${live.needsReply > 1 ? 's' : ''} waiting for you`, detail: 'The bot handed these to a person.', to: '/chats', cta: 'Reply' });
   const fresh = open.filter((o) => o.status === 'pending' && o.paymentState === 'unpaid').length;

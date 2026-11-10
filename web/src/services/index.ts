@@ -58,10 +58,11 @@ export const removeMember = (uid: string) => call('removeMember', { uid });
 
 export type ItemInput = Omit<CatalogItem, 'createdAt' | 'updatedAt' | 'imageUrl' | 'imagePath'>;
 
+/** A failed upload never blocks the item; `photoFailed` lets the form say so. */
 export async function createItem(orgId: string, input: ItemInput, photo?: File | null) {
   const ref = await addDoc(itemsRef(orgId), { ...input, imageUrl: null, imagePath: null, createdAt: serverTimestamp(), updatedAt: serverTimestamp() } as never);
-  if (photo) await setItemPhoto(orgId, ref as DocumentReference<CatalogItem>, photo).catch(() => undefined); // a failed upload never blocks the item
-  return ref.id;
+  const photoFailed = photo ? await setItemPhoto(orgId, ref as DocumentReference<CatalogItem>, photo).then(() => false, () => true) : false;
+  return { id: ref.id, photoFailed };
 }
 
 /** Stock is not editable here; use adjustStock. */
@@ -70,9 +71,35 @@ export async function updateItem(orgId: string, id: string, input: Omit<ItemInpu
   if (photo) await setItemPhoto(orgId, itemRef(orgId, id), photo);
 }
 
+/**
+ * WhatsApp only shows JPEG / PNG / WebP up to 5 MB, and phone photos are often
+ * larger or HEIC. Re-encode to a JPEG at most 1600px wide; if the browser cannot
+ * read the file, upload it as is.
+ */
+async function toWhatsappJpeg(photo: File): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(photo);
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const g = canvas.getContext('2d')!;
+    g.fillStyle = '#fff'; // transparent PNGs would turn black as JPEG
+    g.fillRect(0, 0, canvas.width, canvas.height);
+    g.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    return blob ?? photo;
+  } catch {
+    return photo;
+  }
+}
+
 async function setItemPhoto(orgId: string, ref: DocumentReference<CatalogItem>, photo: File) {
-  const path = itemImagePath(orgId, ref.id, `${Date.now()}-${photo.name.replace(/[^\w.-]/g, '_')}`);
-  const uploaded = await uploadBytes(storageRef(storage, path), photo, { contentType: photo.type });
+  const jpeg = await toWhatsappJpeg(photo);
+  const name = jpeg === photo ? photo.name.replace(/[^\w.-]/g, '_') : 'photo.jpg';
+  const path = itemImagePath(orgId, ref.id, `${Date.now()}-${name}`);
+  const uploaded = await uploadBytes(storageRef(storage, path), jpeg, { contentType: jpeg.type || photo.type });
   const url = await getDownloadURL(uploaded.ref);
   await updateDoc(ref, { imageUrl: url, imagePath: path, updatedAt: serverTimestamp() } as never);
 }

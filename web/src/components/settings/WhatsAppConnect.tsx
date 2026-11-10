@@ -89,7 +89,7 @@ export function WhatsAppConnectButton({ onConnected }: { onConnected?: () => voi
   });
 
   if (!embeddedSignupConfigured) {
-    return <p className="rounded-lg bg-raised px-3 py-2 text-sm text-muted">WhatsApp connection isn't switched on for this Kasa server yet. See README → "Connect WhatsApp".</p>;
+    return <p className="rounded-lg bg-raised px-3 py-2 text-sm text-muted">WhatsApp connection isn't switched on for this SellEazy server yet. See README → "Connect WhatsApp".</p>;
   }
 
   const start = async () => {

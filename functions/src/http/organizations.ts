@@ -12,7 +12,7 @@ import { parse, requireAuth, requireMember } from './guards';
 /**
  * Tenant provisioning happens only here. OrderFlow let the browser write its
  * own users/{uid} doc, which meant anyone could point it at another
- * business's orgId and become its owner; in Kasa, users/{uid} and new
+ * business's orgId and become its owner; in SellEazy, users/{uid} and new
  * organizations are written only by these functions (firestore.rules denies
  * the client).
  */

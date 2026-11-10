@@ -57,7 +57,7 @@ export function AdminDashboardPage() {
 
   return (
     <>
-      <PageHeader title="Platform Dashboard" description="Metrics across every merchant on Kasa." />
+      <PageHeader title="Platform Dashboard" description="Metrics across every merchant on SellEazy." />
 
       {loading && (
         <div className="grid place-items-center py-16">

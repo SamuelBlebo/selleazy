@@ -33,12 +33,12 @@ export async function requireMember(auth: AuthInfo, permission?: Permission): Pr
   }
   if (permission) {
     const org = await orgRef(orgId).get();
-    if (org.get('suspended') === true) throw new HttpsError('failed-precondition', 'This business is suspended. Contact Kasa support.');
+    if (org.get('suspended') === true) throw new HttpsError('failed-precondition', 'This business is suspended. Contact SellEazy support.');
   }
   return { uid: user.uid, orgId, role, name: (profile.get('fullName') as string) ?? 'Staff' };
 }
 
-/** Kasa staff — a separate grant from any merchant role (platformAdmins/{uid}). */
+/** SellEazy staff — a separate grant from any merchant role (platformAdmins/{uid}). */
 export async function requirePlatformAdmin(auth: AuthInfo) {
   const user = requireAuth(auth);
   const admin = await db().collection('platformAdmins').doc(user.uid).get();

@@ -98,7 +98,7 @@ export function AdminMerchantsPage() {
 
   return (
     <>
-      <PageHeader title="Merchants" description="Every business signed up on Kasa." />
+      <PageHeader title="Merchants" description="Every business signed up on SellEazy." />
 
       <div className="mb-4 w-full sm:max-w-xs">
         <Input

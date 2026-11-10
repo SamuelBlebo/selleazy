@@ -27,7 +27,7 @@ import { PricingPage } from '@/pages/marketing/PricingPage';
 import { PrivacyPolicyPage } from '@/pages/marketing/PrivacyPolicyPage';
 import { TermsOfServicePage } from '@/pages/marketing/TermsOfServicePage';
 
-// Platform admin is a separate, low-traffic tool for Kasa staff; keep it out of merchants' bundle.
+// Platform admin is a separate, low-traffic tool for SellEazy staff; keep it out of merchants' bundle.
 const AdminLayout = lazy(() => import('@/layouts/AdminLayout').then((m) => ({ default: m.AdminLayout })));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })));
 const AdminMerchantsPage = lazy(() => import('@/pages/admin/AdminMerchantsPage').then((m) => ({ default: m.AdminMerchantsPage })));

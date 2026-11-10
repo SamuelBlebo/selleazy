@@ -3,7 +3,7 @@ import type { Timestamp } from 'firebase/firestore';
 type DateLike = Timestamp | Date | null | undefined;
 const toDate = (v: DateLike) => (!v ? null : v instanceof Date ? v : v.toDate());
 
-/** Pesewas → "GH₵ 1,240.00". All money in Kasa is integer pesewas. */
+/** Pesewas → "GH₵ 1,240.00". All money in SellEazy is integer pesewas. */
 export function cedis(minor: number | null | undefined): string {
   return `GH₵ ${((minor ?? 0) / 100).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

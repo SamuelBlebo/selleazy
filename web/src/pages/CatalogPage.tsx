@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { limit, orderBy, query, where } from 'firebase/firestore';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -134,6 +134,13 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
     active: item?.active ?? true,
   });
   const [photo, setPhoto] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  useEffect(() => {
+    if (!photo) return setPreview(null);
+    const url = URL.createObjectURL(photo);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photo]);
   const [busy, setBusy] = useState(false);
   const categories = [...new Set(live.items.map((i) => i.category).filter(Boolean))];
 
@@ -163,8 +170,9 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
         await updateItem(org.id, item.id, rest, photo);
         toast.success('Saved.');
       } else {
-        await createItem(org.id, input, photo);
-        toast.success(`${input.name} added. Customers can see it on WhatsApp now.`);
+        const { photoFailed } = await createItem(org.id, input, photo);
+        if (photoFailed) toast.error(`${input.name} added, but the photo did not upload. Open the item and try the photo again.`);
+        else toast.success(`${input.name} added. Customers can see it on WhatsApp now.`);
       }
       onClose();
     } catch (e) {
@@ -230,12 +238,13 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
             </label>
           </div>
         )}
-        <Input label="Other names customers use" value={f.aliases} onChange={(e) => setF({ ...f, aliases: e.target.value })} placeholder="e.g. braids, knotless" hint="Helps Kasa read typed orders like “2 braids abeg”." />
+        <Input label="Other names customers use" value={f.aliases} onChange={(e) => setF({ ...f, aliases: e.target.value })} placeholder="e.g. braids, knotless" hint="Helps SellEazy read typed orders like “2 braids abeg”." />
         <Textarea label="Description (optional)" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold">Photo (optional)</span>
+          {(preview ?? item?.imageUrl) && <img src={preview ?? item!.imageUrl!} alt="" className="mb-2 h-32 w-32 rounded-xl border border-line2 object-cover" />}
           <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} className="block w-full text-sm file:mr-3 file:rounded-full file:border file:border-line2 file:bg-surface file:px-3 file:py-1.5 file:font-semibold" />
-          <span className="mt-1 block text-xs text-muted">JPG or PNG, up to 5 MB.</span>
+          <span className="mt-1 block text-xs text-muted">Customers see it on WhatsApp when they open your {words.catalog.toLowerCase()}. A photo from your phone is fine; SellEazy resizes it.</span>
         </label>
         <label className="flex items-center justify-between gap-3">
           <span className="text-sm font-semibold">Show to customers</span>

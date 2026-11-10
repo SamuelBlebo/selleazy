@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/utils/cn';
 
-/** Kasa's mark: a speech bubble with the selvedge's double rule. */
+/** SellEazy's mark: a speech bubble with the selvedge's double rule. */
 export function Mark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
@@ -15,7 +15,7 @@ export function Logo({ to = '/', className, light }: { to?: string; className?: 
   return (
     <Link to={to} className={cn('inline-flex items-center gap-2.5', light ? 'text-brand-on' : 'text-ink', className)}>
       <Mark />
-      <span className="font-cap text-2xl font-bold leading-none tracking-wide">Kasa</span>
+      <span className="font-cap text-2xl font-bold leading-none tracking-wide">SellEazy</span>
     </Link>
   );
 }

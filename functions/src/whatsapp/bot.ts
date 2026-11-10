@@ -242,13 +242,33 @@ async function showCatalog(ctx: Ctx, prefix: string | undefined, page: number): 
   const hasMore = start + PAGE < items.length;
   const rows = slice.map((it, i) => ({ id: `i:${it.id}`, title: `${start + i + 1}. ${it.name}`, description: priceLine(it) }));
   if (hasMore) rows.push({ id: A.more, title: 'More…', description: `${items.length - start - PAGE} more` });
+  const shownPhotos = await showPhotos(ctx, slice, prefix);
   await ctx.out.list({
-    body: [prefix, 'Tap to choose, or just type what you want, e.g. "2 of number 3".'].filter(Boolean).join('\n\n'),
+    body: [shownPhotos ? null : prefix, `${shownPhotos ? 'Or see the full list. ' : ''}Tap to choose, or just type what you want, e.g. "2 of number 3".`].filter(Boolean).join('\n\n'),
     button: words.button,
     section: ctx.org.name,
     rows,
   });
   return { step: 'browsing', catalogIds: items.map((i) => i.id), catalogPage: start / PAGE };
+}
+
+/**
+ * Items with a photo go out first as swipeable cards (one card as a photo
+ * message, since a carousel needs at least two). Taps arrive as `i:<itemId>`
+ * like list picks. Returns false if nothing was sent, e.g. Meta rejected a photo.
+ */
+async function showPhotos(ctx: Ctx, items: Item[], prefix: string | undefined): Promise<boolean> {
+  const withPhoto = items.filter((i) => i.imageUrl).slice(0, 10);
+  if (!withPhoto.length) return false;
+  const buttonTitle = (i: Item) => (i.kind === 'service' ? 'Book this' : 'Add to cart');
+  // A card allows 160 characters and at most two line breaks.
+  const cardBody = (i: Item) => [`*${i.name}*`, priceLine(i), i.description?.replace(/\s+/g, ' ').trim() || null].filter(Boolean).join('\n');
+  const body = [prefix, 'Swipe to see more, then tap a button to choose.'].filter(Boolean).join('\n\n');
+
+  const result = withPhoto.length === 1
+    ? await ctx.out.buttons({ body: [prefix, cardBody(withPhoto[0])].filter(Boolean).join('\n\n'), buttons: [{ id: `i:${withPhoto[0].id}`, title: buttonTitle(withPhoto[0]) }], imageUrl: withPhoto[0].imageUrl! })
+    : await ctx.out.carousel({ body, cards: withPhoto.map((i) => ({ imageUrl: i.imageUrl!, body: cardBody(i), buttonId: `i:${i.id}`, buttonTitle: buttonTitle(i) })) });
+  return result.ok;
 }
 
 async function pickFromCatalog(ctx: Ctx, text: string): Promise<Item | null> {
