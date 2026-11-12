@@ -107,8 +107,8 @@ export function TermsOfServicePage() {
           <h2 className="text-base font-semibold text-ink">11. Contact</h2>
           <p className="mt-2 text-sm text-muted">
             Questions about these terms can be sent to{' '}
-            <a href="mailto:legal@selleazy.example" className="font-semibold text-brand">
-              legal@selleazy.example
+            <a href="mailto:support@selleazy.com" className="font-semibold text-brand">
+              support@selleazy.com
             </a>
             .
           </p>

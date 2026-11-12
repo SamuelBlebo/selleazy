@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Fixed by the owner: React (Vite + TypeScript) + Tailwind + Firebase (Auth, Firestore, Storage, Cloud Functions, Hosting). Merchant mobile app is a separate future repo (kasa-mobile, React Native + Expo) with its own Firebase config copy. The Phase 2 prototype is a throwaway single-file HTML mock.
+Fixed by the owner: React (Vite + TypeScript) + Tailwind + Firebase (Auth, Firestore, Storage, Cloud Functions, Hosting). Merchant mobile app is a separate future repo (selleazy-mobile, React Native + Expo) with its own Firebase config copy. The Phase 2 prototype is a throwaway single-file HTML mock.
 
 ## Users
 

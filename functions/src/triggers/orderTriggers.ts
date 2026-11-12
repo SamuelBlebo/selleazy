@@ -39,6 +39,6 @@ export const onItemCreated = onDocumentCreated('organizations/{orgId}/items/{ite
   if (!item || item.kind !== 'product' || !item.trackStock || !item.stock) return;
   await stockMovementsRef(event.params.orgId).add({
     itemId: event.params.itemId, itemName: item.name, change: item.stock, balanceAfter: item.stock, reason: 'opening',
-    orderId: null, orderNumber: null, note: 'Starting stock', by: 'kasa', at: Timestamp.now(),
+    orderId: null, orderNumber: null, note: 'Starting stock', by: 'selleazy', at: Timestamp.now(),
   });
 });

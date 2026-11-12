@@ -11,7 +11,7 @@ import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, signInWit
 import { addDoc, collection, connectFirestoreEmulator, doc, getDoc, getDocs, getFirestore, limit, query, setDoc, updateDoc } from 'firebase/firestore';
 
 const [authPort, fsPort] = (process.env.EMU_PORTS ?? '9099,8080').split(',');
-const app = initializeApp({ apiKey: 'demo', projectId: process.env.PROJECT ?? 'demo-kasa' });
+const app = initializeApp({ apiKey: 'demo', projectId: process.env.PROJECT ?? 'demo-selleazy' });
 const auth = getAuth(app);
 const db = getFirestore(app);
 connectAuthEmulator(auth, `http://127.0.0.1:${authPort}`, { disableWarnings: true });

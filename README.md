@@ -2,10 +2,10 @@
 
 **Sell through chat.** SellEazy is a multi-tenant WhatsApp commerce platform for businesses in Ghana: shops, food sellers and service providers. Customers order, book and pay by MoMo inside WhatsApp, with no app or account. Merchants run everything from this dashboard.
 
-This is the **web repo**. The merchant mobile app will be a separate repo (`kasa-mobile`, React Native + Expo) with **its own copy** of the Firebase config. Nothing is shared through a monorepo or workspace.
+This is the **web repo**. The merchant mobile app will be a separate repo (`selleazy-mobile`, React Native + Expo) with **its own copy** of the Firebase config. Nothing is shared through a monorepo or workspace.
 
 ```
-kasa-web/
+selleazy-web/
 ├── web/                React + Vite + TypeScript + Tailwind: marketing site, merchant dashboard, platform admin
 ├── functions/          Cloud Functions: WhatsApp webhook and bot, orders, stock, payments, team, billing, admin
 ├── firestore.rules     Tenant isolation (see "Security")
@@ -38,7 +38,7 @@ kasa-web/
 Needs: Node 20+ (22 recommended), Java 11+ (for the emulators), Firebase CLI (`npm install -g firebase-tools`).
 
 ```powershell
-cd kasa-web
+cd selleazy-web
 cd functions; npm install; npm run build; cd ..
 cd web; npm install; cd ..
 
@@ -46,15 +46,15 @@ cd web; npm install; cd ..
 Set-Content functions\.env.local "GRAPH_VERSION=v21.0`nMETA_APP_ID=local-dev`nAPP_URL=http://localhost:5173"
 Set-Content functions\.secret.local "META_APP_SECRET=local-dev`nWHATSAPP_VERIFY_TOKEN=local-dev`nPAYSTACK_SECRET_KEY=unset"
 Copy-Item web\.env.example web\.env.local
-# In web\.env.local set: VITE_FIREBASE_PROJECT_ID=demo-kasa, VITE_FIREBASE_API_KEY=demo-key,
+# In web\.env.local set: VITE_FIREBASE_PROJECT_ID=demo-selleazy, VITE_FIREBASE_API_KEY=demo-key,
 # VITE_FIREBASE_APP_ID=demo, the other VITE_FIREBASE_* to any value, VITE_USE_FIREBASE_EMULATORS=true
 
 # Window 1: emulators
-firebase emulators:start --only auth,firestore,functions,storage --project demo-kasa
+firebase emulators:start --only auth,firestore,functions,storage --project demo-selleazy
 
 # Window 2: demo data (DEMO_TYPE = retail | services | food)
 cd functions
-$env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"; $env:FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"; $env:GCLOUD_PROJECT="demo-kasa"; $env:DEMO_TYPE="services"
+$env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"; $env:FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"; $env:GCLOUD_PROJECT="demo-selleazy"; $env:DEMO_TYPE="services"
 npm run seed:demo
 
 # Window 3: the web app → http://localhost:5173, sign in with phone 0240000001 / SellEazyDemo!2026
@@ -151,7 +151,7 @@ Customers who messaged in the last 24 hours get free-form replies; older ones ne
 | MTN MoMo / Telecel Cash / AirtelTigo APIs | `functions/src/payments/providers.ts`: implement `MomoCollectionProvider`, register it, call `verifyPayment` from the callback |
 | AI assistant | `functions/src/nlu/index.ts` (swap the rules engine) and `functions/src/assistant/assistant.ts` (suggested replies, daily summary) |
 | Other billing | `functions/src/billing/` (Paystack today) |
-| Mobile app | New `kasa-mobile` repo using the same callables and rules |
+| Mobile app | New `selleazy-mobile` repo using the same callables and rules |
 
 ## Not done yet
 
@@ -159,4 +159,4 @@ Customers who messaged in the last 24 hours get free-form replies; older ones ne
 - WhatsApp message templates for messaging customers after 24 hours.
 - Table QR codes for food businesses (rules exist; no screen yet).
 - Paystack and Meta Embedded Signup have not been exercised against live accounts. Test with test-mode keys and a Meta test number first.
-- Marketing site is client-rendered (limited SEO). Contact emails use `selleazy.example`; replace with your domain.
+- Marketing site is client-rendered (limited SEO).

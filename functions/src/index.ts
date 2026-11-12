@@ -32,5 +32,5 @@ export { cleanupSessions } from './triggers/cleanupSessions';
 export { renewSubscriptions } from './triggers/renewSubscriptions';
 
 export const health = onRequest((_req, res) => {
-  res.json({ ok: true, service: 'kasa-functions' });
+  res.json({ ok: true, service: 'selleazy-functions' });
 });

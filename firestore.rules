@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Kasa tenant isolation. Read the model in functions/src/domain/model.ts.
+// SellEazy tenant isolation. Read the model in functions/src/domain/model.ts.
 //
 // The single source of tenancy is users/{uid}.{orgId, role}, which ONLY Cloud
 // Functions write (createOrganization / acceptInvite). OrderFlow let the

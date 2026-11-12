@@ -99,8 +99,8 @@ export function PrivacyPolicyPage() {
           <h2 className="text-base font-semibold text-ink">9. Contact</h2>
           <p className="mt-2 text-sm text-muted">
             Questions about this policy can be sent to{' '}
-            <a href="mailto:privacy@selleazy.example" className="font-semibold text-brand">
-              privacy@selleazy.example
+            <a href="mailto:support@selleazy.com" className="font-semibold text-brand">
+              support@selleazy.com
             </a>
             .
           </p>

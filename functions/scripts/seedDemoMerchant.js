@@ -7,9 +7,9 @@
  *   DEMO_TYPE = retail (default) | services | food
  *
  * PowerShell, against the emulators:
- *   firebase emulators:start --only auth,firestore,functions --project demo-kasa
+ *   firebase emulators:start --only auth,firestore,functions --project demo-selleazy
  *   # second window, in functions/:
- *   $env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"; $env:FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"; $env:GCLOUD_PROJECT="demo-kasa"; $env:DEMO_TYPE="services"; npm run seed:demo
+ *   $env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"; $env:FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"; $env:GCLOUD_PROJECT="demo-selleazy"; $env:DEMO_TYPE="services"; npm run seed:demo
  *
  * Against a real project: set GOOGLE_APPLICATION_CREDENTIALS to a service
  * account JSON and GCLOUD_PROJECT to the project id instead of the emulator vars.
