@@ -158,7 +158,7 @@ function WhatsAppTab() {
               <Button variant="secondary" loading={busy} disabled={to.replace(/\D/g, '').length < 9} onClick={() => void save(() => sendTestMessage(to), 'Test sent. Check that phone.')}>Send test</Button>
             </div>
             {confirm ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-lg bg-danger-soft p-3 text-sm text-[#7A1C15]">
+              <div className="flex flex-wrap items-center gap-2 rounded-lg bg-danger-soft p-3 text-sm text-danger">
                 <Icon name="alert" /> Customers won't be able to order on WhatsApp until you reconnect.
                 <Button size="sm" variant="danger" onClick={() => void save(() => disconnectWhatsapp(), 'WhatsApp disconnected.')}>Disconnect</Button>
                 <Button size="sm" variant="ghost" onClick={() => setConfirm(false)}>Cancel</Button>
@@ -296,16 +296,16 @@ function Measure({ used, limit }: { used: number; limit: number }) {
   const label = limit > 30 ? 15 : 5;
   return (
     <svg viewBox={`0 0 ${W} 80`} className="h-auto w-full" role="img" aria-label={`${used} of ${limit} orders used this month`}>
-      <line x1="10" x2={W - 10} y1="56" y2="56" stroke="#CDBFA6" />
-      <line x1="10" x2={x(used)} y1="56" y2="56" stroke="#26346F" strokeWidth="3" />
+      <line x1="10" x2={W - 10} y1="56" y2="56" stroke="#D1D5DB" />
+      <line x1="10" x2={x(used)} y1="56" y2="56" stroke="#008069" strokeWidth="3" />
       {Array.from({ length: limit + 1 }, (_, k) => (
         <g key={k}>
-          <line x1={x(k)} x2={x(k)} y1={k % 5 === 0 ? 30 : 40} y2="56" stroke={k <= used ? '#26346F' : '#CDBFA6'} strokeWidth={k % 5 === 0 ? 1.6 : 1} />
-          {k % label === 0 && <text x={x(k)} y="74" textAnchor="middle" fontSize="12" fill="#62594B">{k}</text>}
+          <line x1={x(k)} x2={x(k)} y1={k % 5 === 0 ? 30 : 40} y2="56" stroke={k <= used ? '#008069' : '#D1D5DB'} strokeWidth={k % 5 === 0 ? 1.6 : 1} />
+          {k % label === 0 && <text x={x(k)} y="74" textAnchor="middle" fontSize="12" fill="#6B7280">{k}</text>}
         </g>
       ))}
-      <path d={`M${x(used)} 26 l-6 -10 h12z`} fill="#C4860F" />
-      <text x={x(used)} y="11" textAnchor="middle" fontSize="13" fontWeight="700" fill="#6B4500">{used}</text>
+      <path d={`M${x(used)} 26 l-6 -10 h12z`} fill="#D97706" />
+      <text x={x(used)} y="11" textAnchor="middle" fontSize="13" fontWeight="700" fill="#92400E">{used}</text>
     </svg>
   );
 }
@@ -337,7 +337,7 @@ function PlanTab() {
   return (
     <div className="space-y-5">
       {params.get('paystack') === 'return' && <p className="rounded-lg bg-ok-soft px-4 py-3 text-ok-ink">Thanks! Your plan updates as soon as Paystack confirms the payment (usually under a minute).</p>}
-      {sub.status === 'past_due' && <p className="rounded-lg bg-danger-soft px-4 py-3 text-[#7A1C15]">Your last renewal didn't go through. Pay again below to keep your plan.</p>}
+      {sub.status === 'past_due' && <p className="rounded-lg bg-danger-soft px-4 py-3 text-danger">Your last renewal didn't go through. Pay again below to keep your plan.</p>}
       <Card>
         <CardHeader title="This month" action={<Badge tone="brand">{cur.name} plan</Badge>} />
         <CardBody>
@@ -351,7 +351,7 @@ function PlanTab() {
         {PLANS.map((p) => (
           <article key={p.id} className={cn('flex flex-col gap-2.5 rounded-2xl border bg-surface p-4', p.id === cur.id ? 'border-brand-2 shadow-[inset_0_0_0_1px_rgb(var(--c-brand2))]' : 'border-line')}>
             <h3 className="font-semibold">{p.name}</h3>
-            <p className="tabular text-2xl font-bold">{cedis(p.priceMinor).replace('.00', '')}<span className="text-sm font-medium text-muted"> / month</span></p>
+            <p className="tabular text-2xl font-semibold">{cedis(p.priceMinor).replace('.00', '')}<span className="text-sm font-medium text-muted"> / month</span></p>
             <ul className="space-y-1.5 text-[13.5px]">{p.features.map((ft) => <li key={ft} className="flex gap-2"><Icon name="check" className="mt-0.5 h-4 w-4 text-ok" />{ft}</li>)}</ul>
             <div className="mt-auto pt-2">
               {p.id === cur.id ? (

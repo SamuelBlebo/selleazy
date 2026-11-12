@@ -33,7 +33,7 @@ export function ChatsPage() {
       <aside className={cn('flex min-h-0 flex-col border-r border-line bg-surface', waId && 'hidden md:flex')} aria-label="Conversations">
         <div className="space-y-3 border-b border-line p-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold">Chats</h1>
+            <h1 className="text-xl font-semibold">Chats</h1>
             <Badge tone={org.bot.menuEnabled ? 'ok' : 'neutral'}>{org.bot.menuEnabled ? 'Bot on' : 'Bot off'}</Badge>
           </div>
           <SearchInput value={q} onChange={setQ} placeholder="Search name or number" />
@@ -57,7 +57,7 @@ export function ChatsPage() {
               <span className="flex flex-col items-end gap-1 text-xs text-muted">
                 <span className="tabular">{shortWhen(c.lastMessageAt)}</span>
                 {c.unreadCount > 0 ? (
-                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-bold text-[#2A1B00]">{c.unreadCount}</span>
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1.5 text-[11px] font-semibold text-white">{c.unreadCount}</span>
                 ) : c.needsHuman ? (
                   <Badge tone="brand">Reply</Badge>
                 ) : null}
@@ -67,7 +67,7 @@ export function ChatsPage() {
         </div>
       </aside>
       {waId ? <Thread key={waId} waId={waId} /> : (
-        <section className="hidden place-items-center bg-[#EFE8DA] p-8 text-center text-muted md:grid">
+        <section className="hidden place-items-center bg-chat p-8 text-center text-muted md:grid">
           <div>
             <Icon name="chat" className="mx-auto h-10 w-10" />
             <p className="mt-2">Pick a chat to read and reply.<br />Orders the bot takes show up here too.</p>
@@ -131,7 +131,7 @@ function Thread({ waId }: { waId: string }) {
 
   return (
     <>
-      <section className="flex min-h-0 flex-col bg-[#EFE8DA]" aria-label="Conversation">
+      <section className="flex min-h-0 flex-col bg-chat" aria-label="Conversation">
         <div className="flex items-center gap-3 border-b border-line bg-surface px-4 py-2.5">
           <button type="button" onClick={() => navigate('/chats')} className="grid h-10 w-10 place-items-center rounded-full hover:bg-raised md:hidden" aria-label="Back to chats">
             <Icon name="back" />
@@ -188,7 +188,7 @@ function Thread({ waId }: { waId: string }) {
           <div className="mt-5">
             <h3 className="mb-2 font-semibold">Latest {latest.hasProducts ? 'order' : 'booking'}</h3>
             <button type="button" onClick={() => setOrderOpen(latest.id)} className="w-full overflow-hidden rounded-2xl border border-line text-left hover:border-line2">
-              <div className="flex items-center justify-between border-b-[3px] border-double border-line px-3.5 py-2 font-cap text-[11px] font-semibold uppercase tracking-[0.13em] text-muted">
+              <div className="flex items-center justify-between border-b border-line px-3.5 py-2 text-[11px] font-medium uppercase tracking-wider text-muted">
                 <span>#{latest.number} · {time(latest.createdAt)}</span>
                 <StatusBadge order={latest} />
               </div>
@@ -229,8 +229,8 @@ function Bubble({ m }: { m: WithId<Message> }) {
   const out = m.direction === 'out';
   return (
     <div className={cn('flex', out && 'justify-end')}>
-      <div className={cn('max-w-[86%] rounded-[10px] px-2.5 pb-1.5 pt-2 shadow-[0_1px_1px_rgba(45,32,8,.08)] sm:max-w-[min(520px,78%)]', out ? 'rounded-tr-sm bg-[#DCEFD0]' : 'rounded-tl-sm bg-surface', m.failed && 'ring-1 ring-danger')}>
-        {out && <span className="block font-cap text-[11px] font-semibold uppercase tracking-[0.1em] text-ok-ink">{m.by === 'bot' ? 'SellEazy bot' : 'You'}</span>}
+      <div className={cn('max-w-[86%] rounded-[10px] px-2.5 pb-1.5 pt-2 shadow-sm sm:max-w-[min(520px,78%)]', out ? 'rounded-tr-sm bg-brand-soft' : 'rounded-tl-sm bg-surface', m.failed && 'ring-1 ring-danger')}>
+        {out && <span className="block text-[11px] font-medium uppercase tracking-wider text-ok-ink">{m.by === 'bot' ? 'SellEazy bot' : 'You'}</span>}
         <p className="whitespace-pre-wrap break-words">{m.body ?? <i className="text-muted">({m.type} message)</i>}</p>
         {m.extra?.options && m.extra.options.length > 0 && (
           <div className="-mx-2.5 mt-2 border-t border-black/10 pt-1.5 text-center text-sm font-semibold text-[#1F7A9C]">

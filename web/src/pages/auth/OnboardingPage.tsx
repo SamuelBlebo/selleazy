@@ -32,7 +32,7 @@ export function OnboardingPage() {
   if (!type) {
     return (
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">What do you sell?</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">What do you sell?</h1>
         <p className="mt-1 text-sm text-muted">This sets up the right tools. You can change it later.</p>
         <div className="mt-6 space-y-2.5">
           {BUSINESS_TYPES.map((t) => (
@@ -81,7 +81,7 @@ export function OnboardingPage() {
   return (
     <div>
       <button type="button" onClick={() => setType(null)} className="mb-3 text-sm text-muted underline">← Change what you sell</button>
-      <h1 className="text-2xl font-bold tracking-tight">About your business</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">About your business</h1>
       <p className="mt-1 text-sm text-muted">{BUSINESS_TYPES.find((t) => t.id === type)?.label}</p>
       <div className="mt-6 space-y-4">
         <Input label="Business name" value={f.businessName} onChange={(e) => setF({ ...f, businessName: e.target.value })} placeholder={type === 'services' ? "e.g. Efua's Hair Studio" : type === 'food' ? "e.g. Ama's Kitchen" : 'e.g. Kofi Phones'} />

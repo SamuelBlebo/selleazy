@@ -101,7 +101,7 @@ function PaymentCard({ p }: { p: WithId<Payment> }) {
 
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-surface">
-      <div className="flex items-center justify-between gap-2 border-b-[3px] border-double border-line px-4 py-2 font-cap text-[11px] font-semibold uppercase tracking-[0.13em] text-muted">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted">
         <span>{p.network ? NETWORK[p.network] : p.method} · {shortWhen(p.createdAt)} · #{p.orderNumber}</span>
         {p.status === 'verified' ? <Badge tone="ok">Verified</Badge> : p.status === 'rejected' ? <Badge tone="danger">Rejected</Badge> : bad ? <Badge tone="danger">Check carefully</Badge> : <Badge tone="accent">To check</Badge>}
       </div>
@@ -124,7 +124,7 @@ function PaymentCard({ p }: { p: WithId<Payment> }) {
           <div className="mb-3"><span className="text-[13px] text-muted">Transaction ID</span><p className="font-mono text-[15px] font-semibold tracking-wider">{p.reference}</p></div>
         )}
         {p.status === 'submitted' && FLAG_TEXT(p).map((t) => (
-          <p key={t} className="mb-2 flex gap-2 rounded-lg bg-danger-soft px-3 py-2 text-[13.5px] text-[#7A1C15]"><Icon name="alert" className="mt-0.5 h-4 w-4" />{t}</p>
+          <p key={t} className="mb-2 flex gap-2 rounded-lg bg-danger-soft px-3 py-2 text-[13.5px] text-danger"><Icon name="alert" className="mt-0.5 h-4 w-4" />{t}</p>
         ))}
         {p.status === 'submitted' ? (
           rejecting ? (

@@ -24,7 +24,7 @@ function StatCard({ icon, tone, label, value, note }: { icon: string; tone: Tone
         </span>
         <div className="min-w-0">
           <p className="text-xs font-semibold text-muted">{label}</p>
-          <p className="mt-1 truncate text-2xl font-bold tracking-tight text-ink">{value}</p>
+          <p className="mt-1 truncate text-2xl font-semibold tracking-tight text-ink">{value}</p>
           {note && <p className="mt-0.5 truncate text-xs text-muted">{note}</p>}
         </div>
       </CardBody>

@@ -6,7 +6,7 @@ export function TermsOfServicePage() {
   usePageTitle('Terms of Service');
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight text-ink">Terms of Service</h1>
+      <h1 className="text-3xl font-semibold tracking-tight text-ink">Terms of Service</h1>
       <p className="mt-2 text-sm text-muted">Last updated {LAST_UPDATED}</p>
 
       <div className="mt-8 space-y-8">

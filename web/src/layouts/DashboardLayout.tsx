@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Fragment } from 'react';
-import { Mark } from '@/components/layout/Logo';
+import { Mark, Wordmark } from '@/components/layout/Logo';
 import { Count, Icon, type IconName } from '@/components/ui';
 import { can, ROLE_LABEL, type Permission } from '@/config/permissions';
 import { vocabulary } from '@/config/business';
@@ -37,8 +37,8 @@ function useNav(): { items: NavItem[]; tabs: NavItem[] } {
   return { items, tabs };
 }
 
-/** The signature strip: today's trade printed along the edge, like a wax-print selvedge. */
-function Selvedge() {
+/** One quiet line with today's numbers, above every page. */
+function TodayBar() {
   const { org, profile } = useAuth();
   const live = useLive();
   const words = vocabulary(org!.businessType);
@@ -46,7 +46,6 @@ function Selvedge() {
   const date = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   const showMoney = can(profile?.role, 'payments.verify');
   const parts: Array<{ to?: string; strong?: string; text: string }> = [
-    { text: org!.name },
     { text: date },
     { to: '/orders', strong: String(open.length), text: `${words.order}s today` },
     ...(showMoney ? [{ strong: cedis(live.takenTodayMinor), text: 'taken' }, { to: '/payments', strong: String(live.paymentsToCheck), text: 'MoMo to check' }] : []),
@@ -54,19 +53,19 @@ function Selvedge() {
     ...(live.lowStock.length ? [{ to: '/catalog', strong: String(live.lowStock.length), text: 'low stock' }] : []),
   ];
   return (
-    <div className="shrink-0 overflow-x-auto border-b-[3px] border-double border-line2 bg-surface [scrollbar-width:none]" role="region" aria-label="Today at a glance">
-      <div className="flex items-center gap-3.5 whitespace-nowrap px-4 py-2 font-cap text-xs font-semibold uppercase tracking-[0.15em] text-brand-ink lg:px-8">
+    <div className="shrink-0 overflow-x-auto border-b border-line bg-surface [scrollbar-width:none]" role="region" aria-label="Today at a glance">
+      <div className="flex h-11 items-center gap-3 whitespace-nowrap px-4 text-[13px] text-muted lg:px-8">
         {parts.map((p, i) => {
           const inner = (
             <>
-              {p.strong && <em className="tabular not-italic text-accent-ink">{p.strong} </em>}
+              {p.strong && <span className="tabular font-semibold text-ink">{p.strong} </span>}
               {p.text}
             </>
           );
           return (
             <Fragment key={i}>
-              {i > 0 && <i className="h-[5px] w-[5px] shrink-0 rotate-45 bg-accent" aria-hidden />}
-              {p.to ? <NavLink to={p.to} className="hover:underline">{inner}</NavLink> : <span>{inner}</span>}
+              {i > 0 && <span className="text-line2" aria-hidden>·</span>}
+              {p.to ? <NavLink to={p.to} className="hover:text-ink">{inner}</NavLink> : <span>{inner}</span>}
             </Fragment>
           );
         })}
@@ -83,15 +82,15 @@ function Shell() {
   const inTabs = tabs.some((t) => location.pathname.startsWith(t.to));
 
   return (
-    <div className="grid h-dvh grid-cols-1 overflow-hidden lg:grid-cols-[236px_minmax(0,1fr)]">
-      <nav aria-label="Main" className="hidden flex-col overflow-y-auto bg-brand px-3 pb-3.5 pt-[18px] text-brand-on lg:flex">
-        <NavLink to="/today" className="flex items-center gap-2.5 px-2.5 pb-[18px]">
-          <Mark size={30} />
-          <span className="font-cap text-2xl font-bold">SellEazy</span>
+    <div className="grid h-dvh grid-cols-1 overflow-hidden lg:grid-cols-[232px_minmax(0,1fr)]">
+      <nav aria-label="Main" className="hidden flex-col overflow-y-auto border-r border-line bg-surface px-3 pb-3 pt-4 lg:flex">
+        <NavLink to="/today" className="flex items-center gap-2 px-2 pb-4">
+          <Mark size={26} />
+          <Wordmark />
         </NavLink>
-        <div className="mx-1 mb-4 rounded-lg bg-brand-2 px-3 py-2.5">
-          <p className="truncate text-sm font-semibold">{org!.name}</p>
-          <p className="text-xs text-brand-dim">
+        <div className="mb-4 rounded-lg border border-line px-3 py-2.5">
+          <p className="truncate text-sm font-medium">{org!.name}</p>
+          <p className="mt-0.5 text-xs text-muted">
             {plan.name} plan · {org!.subscription.ordersUsedThisPeriod ?? 0} of {plan.orderLimit ?? '∞'} orders
           </p>
         </div>
@@ -101,36 +100,39 @@ function Shell() {
               key={it.to}
               to={it.to}
               className={({ isActive }) =>
-                cn('flex items-center gap-3 rounded-lg px-3 py-2.5 font-medium', isActive ? 'bg-surface text-brand' : 'text-brand-dim hover:bg-brand-2 hover:text-brand-on')
+                cn(
+                  'flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
+                  isActive ? 'bg-raised text-ink [&_svg]:text-brand' : 'text-muted hover:bg-raised/60 hover:text-ink',
+                )
               }
             >
-              <Icon name={it.icon} />
+              <Icon name={it.icon} className="h-[18px] w-[18px]" />
               <span className="flex-1">{it.label}</span>
               <Count n={it.count ?? 0} />
             </NavLink>
           ))}
         </div>
-        <div className="mt-auto flex items-center gap-2.5 border-t border-brand-2 px-2.5 pt-3.5 text-sm text-brand-dim">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-xs font-bold text-brand-ink">{initials(profile?.fullName ?? user?.displayName)}</span>
+        <div className="mt-auto flex items-center gap-2.5 border-t border-line px-1 pt-3 text-sm">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-soft text-xs font-semibold text-brand-ink">{initials(profile?.fullName ?? user?.displayName)}</span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-brand-on">{profile?.fullName}</p>
-            <p>{profile?.role ? ROLE_LABEL[profile.role] : ''}</p>
+            <p className="truncate font-medium">{profile?.fullName}</p>
+            <p className="text-xs text-muted">{profile?.role ? ROLE_LABEL[profile.role] : ''}</p>
           </div>
-          <button type="button" onClick={() => void signOutUser()} aria-label="Sign out" className="grid h-9 w-9 place-items-center rounded-full hover:bg-brand-2">
-            <Icon name="logout" />
+          <button type="button" onClick={() => void signOutUser()} aria-label="Sign out" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-raised hover:text-ink">
+            <Icon name="logout" className="h-[18px] w-[18px]" />
           </button>
         </div>
       </nav>
 
       <div className="flex h-dvh min-w-0 flex-col">
-        <header className="flex shrink-0 items-center justify-between gap-3 bg-brand px-4 py-2.5 text-brand-on lg:hidden">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5 lg:hidden">
           <NavLink to="/today" className="flex items-center gap-2">
-            <Mark size={26} />
-            <span className="font-cap text-xl font-bold">SellEazy</span>
+            <Mark size={24} />
+            <Wordmark />
           </NavLink>
-          <span className="truncate text-sm text-brand-dim">{org!.name}</span>
+          <span className="truncate text-sm text-muted">{org!.name}</span>
         </header>
-        <Selvedge />
+        <TodayBar />
         {org!.suspended && (
           <div className="bg-danger px-4 py-2 text-center text-sm font-semibold text-white">
             Your business is suspended{org!.suspendedReason ? `: ${org!.suspendedReason}` : '.'} WhatsApp orders are paused. Contact SellEazy support.
@@ -144,14 +146,14 @@ function Shell() {
             <NavLink
               key={t.to}
               to={t.to}
-              className={({ isActive }) => cn('relative flex flex-col items-center gap-0.5 py-2 text-[11.5px] font-semibold', isActive ? 'text-brand' : 'text-muted')}
+              className={({ isActive }) => cn('relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium', isActive ? 'text-brand' : 'text-muted')}
             >
               <Icon name={t.icon} />
               {t.label === 'MoMo checks' ? 'MoMo' : t.label}
               <Count n={t.count ?? 0} className="absolute left-[calc(50%+6px)] top-1 h-[18px] min-w-[18px] text-[10px]" />
             </NavLink>
           ))}
-          <NavLink to="/more" className={cn('flex flex-col items-center gap-0.5 py-2 text-[11.5px] font-semibold', !inTabs ? 'text-brand' : 'text-muted')}>
+          <NavLink to="/more" className={cn('flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium', !inTabs ? 'text-brand' : 'text-muted')}>
             <Icon name="more" />
             More
           </NavLink>
@@ -175,7 +177,7 @@ export function MorePage() {
   const rest = items.filter((i) => !tabs.includes(i));
   return (
     <div className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-4 text-2xl font-bold">More</h1>
+      <h1 className="mb-4 text-2xl font-semibold">More</h1>
       <div className="overflow-hidden rounded-2xl border border-line bg-surface">
         {rest.map((it) => (
           <NavLink key={it.to} to={it.to} className="flex items-center gap-3 border-t border-line px-4 py-3.5 first:border-t-0 hover:bg-raised">

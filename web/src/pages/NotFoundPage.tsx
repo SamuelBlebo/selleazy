@@ -6,7 +6,7 @@ export function NotFoundPage() {
     <div className="grid min-h-screen place-items-center bg-canvas px-6 text-center">
       <div>
         <p className="text-sm font-semibold text-brand">404</p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-ink">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">
           That page is not here
         </h1>
         <p className="mx-auto mt-2 max-w-sm text-sm text-muted">

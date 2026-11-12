@@ -63,7 +63,7 @@ export function KitchenPage() {
                 const deliveryWaiting = col.status === 'ready' && o.fulfilment === 'delivery';
                 return (
                   <article key={o.id} className="mb-3.5 overflow-hidden rounded-2xl border border-line bg-surface">
-                    <div className="border-b-[3px] border-double border-line px-4 py-2 font-cap text-xs font-semibold uppercase tracking-[0.13em] text-muted">
+                    <div className="border-b border-line px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted">
                       #{o.number} · {o.customerName} · {FULFILMENT_LABEL[o.fulfilment]}
                     </div>
                     <ul className="px-4 py-3 text-[19px] font-semibold leading-relaxed">
@@ -73,7 +73,7 @@ export function KitchenPage() {
                     </ul>
                     {o.note && <p className="mx-4 mb-2 rounded-lg bg-accent-soft px-3 py-1.5 text-sm text-accent-ink">{o.note}</p>}
                     <div className="flex items-center justify-between gap-2 px-4 pb-3.5">
-                      <span className={cn('tabular text-xl font-bold', s > 1800 ? 'text-danger' : s > 1200 && 'text-accent-ink')}>
+                      <span className={cn('tabular text-xl font-semibold', s > 1800 ? 'text-danger' : s > 1200 && 'text-accent-ink')}>
                         {String(Math.floor(s / 60)).padStart(2, '0')}:{String(s % 60).padStart(2, '0')}
                       </span>
                       {deliveryWaiting ? (

@@ -13,7 +13,7 @@ const TONES: Record<Tone, string> = {
 
 export function Badge({ children, tone = 'neutral', className }: { children: ReactNode; tone?: Tone; className?: string }) {
   return (
-    <span className={cn('inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-xs font-semibold', TONES[tone], className)}>
+    <span className={cn('inline-flex h-[22px] items-center gap-1 whitespace-nowrap rounded-md px-2 text-xs font-medium', TONES[tone], className)}>
       {children}
     </span>
   );
@@ -23,7 +23,7 @@ export function Badge({ children, tone = 'neutral', className }: { children: Rea
 export function Count({ n, className }: { n: number; className?: string }) {
   if (!n) return null;
   return (
-    <span className={cn('tabular grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1.5 text-[11px] font-bold text-[#2A1B00]', className)}>
+    <span className={cn('tabular grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1.5 text-[11px] font-semibold text-white', className)}>
       {n > 99 ? '99+' : n}
     </span>
   );

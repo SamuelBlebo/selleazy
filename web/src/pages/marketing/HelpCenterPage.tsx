@@ -108,13 +108,13 @@ export function HelpCenterPage() {
   usePageTitle('Help Center');
   return (
     <div className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-3xl font-bold tracking-tight text-ink">Help Center</h1>
+      <h1 className="text-3xl font-semibold tracking-tight text-ink">Help Center</h1>
       <p className="mt-3 text-muted">Short guides for getting your shop running on SellEazy.</p>
 
       <div className="mt-10 space-y-12">
         {SECTIONS.map((section) => (
           <section key={section.title}>
-            <h2 className="text-lg font-bold text-ink">{section.title}</h2>
+            <h2 className="text-lg font-semibold text-ink">{section.title}</h2>
             <div className="mt-4 space-y-6">
               {section.articles.map((article) => (
                 <div key={article.title}>

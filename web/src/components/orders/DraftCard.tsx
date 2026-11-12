@@ -56,7 +56,7 @@ export function DraftCard({ draft }: { draft: WithId<DraftOrder> }) {
 
   return (
     <div className="mx-auto my-2.5 w-full max-w-[560px] overflow-hidden rounded-2xl border border-accent bg-surface shadow-card" role="group" aria-label="Order SellEazy read from the message">
-      <div className="flex items-center justify-between gap-3 border-b-[3px] border-double border-accent-soft bg-[#FDF5E2] px-4 py-2 font-cap text-[11px] font-semibold uppercase tracking-[0.13em] text-accent-ink">
+      <div className="flex items-center justify-between gap-3 border-b border-accent-soft bg-accent-soft/40 px-4 py-2 text-xs font-medium text-accent-ink">
         <span className="flex items-center gap-2"><Icon name="spark" className="h-3.5 w-3.5" /> SellEazy read this as an order · only you see this</span>
         <span className="tabular">{time(draft.createdAt)}</span>
       </div>
@@ -72,9 +72,9 @@ export function DraftCard({ draft }: { draft: WithId<DraftOrder> }) {
                   <span className="block text-xs text-muted">{it ? `${cedis(it.priceMinor)} each${it.kind === 'product' && it.trackStock ? ` · ${it.stock} in stock` : ''}` : ''}</span>
                 </span>
                 <span className="inline-flex items-center rounded-full border border-line2">
-                  <button type="button" className="h-8 w-8 rounded-full text-lg font-bold hover:bg-raised" onClick={() => setQty(i, -1)} aria-label={`Fewer ${it?.name}`}>−</button>
+                  <button type="button" className="h-8 w-8 rounded-full text-lg font-semibold hover:bg-raised" onClick={() => setQty(i, -1)} aria-label={`Fewer ${it?.name}`}>−</button>
                   <span className="tabular min-w-6 text-center font-semibold">{l.quantity}</span>
-                  <button type="button" className="h-8 w-8 rounded-full text-lg font-bold hover:bg-raised" onClick={() => setQty(i, 1)} aria-label={`More ${it?.name}`}>+</button>
+                  <button type="button" className="h-8 w-8 rounded-full text-lg font-semibold hover:bg-raised" onClick={() => setQty(i, 1)} aria-label={`More ${it?.name}`}>+</button>
                 </span>
                 <span className="tabular w-24 text-right">{cedis((it?.priceMinor ?? 0) * l.quantity)}</span>
               </div>

@@ -4,28 +4,31 @@
 
 /* One token set. Tailwind reads these via tailwind.config.js. */
 @layer base {
+  /* Neutral greys, WhatsApp greens for the brand, amber only for attention, red only for faults. */
   :root {
-    --c-canvas: 245 239 227;
-    --c-surface: 255 252 245;
-    --c-raised: 237 229 212;
-    --c-line: 224 213 193;
-    --c-line2: 205 191 166;
-    --c-ink: 29 26 21;
-    --c-muted: 98 89 75;
-    --c-brand: 28 39 87;
-    --c-brand2: 38 52 111;
-    --c-brand-soft: 226 229 243;
-    --c-brand-ink: 38 52 111;
-    --c-on-brand: 238 236 247;
-    --c-on-brand-dim: 177 184 220;
-    --c-accent: 196 134 15;
-    --c-accent-soft: 246 228 184;
-    --c-accent-ink: 107 69 0;
-    --c-ok: 46 115 67;
-    --c-ok-soft: 216 235 212;
-    --c-ok-ink: 29 79 45;
-    --c-danger: 168 40 31;
-    --c-danger-soft: 246 219 214;
+    --c-canvas: 249 250 251;
+    --c-surface: 255 255 255;
+    --c-raised: 243 244 246;
+    --c-line: 229 231 235;
+    --c-line2: 209 213 219;
+    --c-ink: 17 24 39;
+    --c-muted: 107 114 128;
+    --c-brand: 0 128 105;
+    --c-brand2: 0 103 84;
+    --c-brand-soft: 217 253 211;
+    --c-brand-ink: 0 92 75;
+    --c-on-brand: 255 255 255;
+    --c-on-brand-dim: 217 253 211;
+    /* WhatsApp chat wallpaper. */
+    --c-chat: 239 234 226;
+    --c-accent: 217 119 6;
+    --c-accent-soft: 254 243 199;
+    --c-accent-ink: 146 64 14;
+    --c-ok: 0 128 105;
+    --c-ok-soft: 217 253 211;
+    --c-ok-ink: 0 92 75;
+    --c-danger: 220 38 38;
+    --c-danger-soft: 254 226 226;
     color-scheme: light;
   }
 
@@ -35,11 +38,16 @@
 
   body {
     @apply bg-canvas text-ink antialiased;
-    caret-color: rgb(var(--c-brand2));
+    caret-color: rgb(var(--c-brand));
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  h1, h2, h3 {
+    letter-spacing: -0.015em;
   }
 
   ::selection {
-    background: rgb(var(--c-accent-soft));
+    background: rgb(var(--c-brand-soft));
     color: rgb(var(--c-ink));
   }
 
@@ -49,7 +57,7 @@
   }
 
   *:focus-visible {
-    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-canvas;
+    @apply outline-none ring-2 ring-brand/40 ring-offset-2 ring-offset-canvas;
   }
 
   .tabular {
@@ -67,8 +75,8 @@
 }
 
 @layer components {
-  /* Small tracked caps: the selvedge voice. */
+  /* Small section labels. */
   .cap {
-    @apply font-cap text-[11px] font-semibold uppercase tracking-[0.13em];
+    @apply text-[11px] font-medium uppercase tracking-wider text-muted;
   }
 }

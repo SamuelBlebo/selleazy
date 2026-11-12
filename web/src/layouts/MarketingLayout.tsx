@@ -30,8 +30,8 @@ export function MarketingLayout() {
                 to={link.to}
                 className={({ isActive }) =>
                   cn(
-                    'rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
-                    isActive ? 'text-brand' : 'text-muted hover:text-ink',
+                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    isActive ? 'text-ink' : 'text-muted hover:text-ink',
                   )
                 }
               >

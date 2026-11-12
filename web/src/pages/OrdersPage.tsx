@@ -90,7 +90,7 @@ export function OrdersPage() {
         )
       ) : (
         <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-          <div className="hidden grid-cols-[64px_minmax(140px,1.2fr)_minmax(160px,2fr)_110px_120px_150px_150px] gap-3.5 bg-raised px-4 py-2.5 font-cap text-[11px] font-semibold uppercase tracking-[0.12em] text-muted lg:grid">
+          <div className="hidden grid-cols-[64px_minmax(140px,1.2fr)_minmax(160px,2fr)_110px_120px_150px_150px] gap-3.5 bg-raised px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted lg:grid">
             <span>#</span><span>Customer</span><span>Items</span><span className="text-right">Total</span><span>Payment</span><span>Status</span><span />
           </div>
           {orders.status === 'loading' && <p className="p-6 text-muted">Loading…</p>}

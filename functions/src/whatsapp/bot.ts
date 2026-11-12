@@ -27,7 +27,7 @@ export interface InboundMessage {
   interactive?: { type: string; list_reply?: { id: string; title: string }; button_reply?: { id: string; title: string } };
 }
 
-type Step = 'idle' | 'browsing' | 'awaiting_qty' | 'awaiting_name' | 'awaiting_fulfilment' | 'awaiting_address' | 'awaiting_time' | 'awaiting_confirm';
+type Step = 'idle' | 'browsing' | 'with_human' | 'awaiting_qty' | 'awaiting_name' | 'awaiting_fulfilment' | 'awaiting_address' | 'awaiting_time' | 'awaiting_confirm';
 
 interface CartLine {
   itemId: string;
@@ -59,11 +59,13 @@ const EMPTY: Session = {
 };
 
 const A = {
-  browse: 'menu:browse', more: 'menu:more', cart: 'menu:cart', addMore: 'cart:more', checkout: 'cart:checkout',
+  shop: 'menu:shop', human: 'menu:human', browse: 'menu:browse', more: 'menu:more', cart: 'menu:cart', addMore: 'cart:more', checkout: 'cart:checkout',
   clear: 'cart:clear', confirm: 'order:confirm', cancel: 'order:cancel',
 } as const;
 
 const PAGE = 9;
+/** After "Chat with us" the bot stays quiet this long, so staff can talk without it butting in. */
+const HUMAN_QUIET_MS = 4 * 60 * 60000;
 const GREETINGS = ['hi', 'hello', 'hey', 'start', 'good morning', 'good afternoon', 'good evening', 'akwaaba'];
 const CATALOG_WORDS = ['menu', 'shop', 'catalog', 'catalogue', 'products', 'items', 'services', 'price list', 'prices'];
 
@@ -166,7 +168,7 @@ async function route(ctx: Ctx, m: InboundMessage, body: string | null): Promise<
   const text = body.trim();
   const lower = text.toLowerCase();
 
-  if (GREETINGS.includes(lower)) return showCatalog(ctx, ctx.org.greeting, 0);
+  if (GREETINGS.includes(lower)) return greet(ctx);
   if (CATALOG_WORDS.includes(lower)) return showCatalog(ctx, undefined, 0);
   if (lower === 'more' && ctx.s.step === 'browsing') return showCatalog(ctx, undefined, ctx.s.catalogPage + 1);
   if (lower === 'cart') return showCart(ctx);
@@ -189,6 +191,8 @@ async function route(ctx: Ctx, m: InboundMessage, body: string | null): Promise<
 
   if (await maybeCapturePayment(ctx, text)) return { step: 'idle' };
 
+  if (ctx.s.step === 'with_human' && ctx.s.lastHandoffAt && Date.now() - ctx.s.lastHandoffAt < HUMAN_QUIET_MS) return handoff(ctx, true);
+
   if (ctx.s.step === 'browsing') {
     const picked = await pickFromCatalog(ctx, text);
     if (picked) return askQty(ctx, picked);
@@ -197,6 +201,8 @@ async function route(ctx: Ctx, m: InboundMessage, body: string | null): Promise<
 }
 
 async function handleAction(ctx: Ctx, id: string): Promise<Partial<Session>> {
+  if (id === A.shop) return showCatalog(ctx, undefined, 0, false);
+  if (id === A.human) return chatWithSomeone(ctx);
   if (id === A.browse || id === A.addMore) return showCatalog(ctx, undefined, 0);
   if (id === A.more) return showCatalog(ctx, undefined, ctx.s.catalogPage + 1);
   if (id === A.cart) return showCart(ctx);
@@ -230,7 +236,31 @@ async function getItem(ctx: Ctx, id: string): Promise<Item | null> {
 
 const priceLine = (i: Item) => `${formatCedis(i.priceMinor)}${i.kind === 'service' && i.durationMinutes ? ` · ${i.durationMinutes} min` : ''}`;
 
-async function showCatalog(ctx: Ctx, prefix: string | undefined, page: number): Promise<Partial<Session>> {
+/**
+ * Reply to "hi": the greeting with a look at what's on offer (photo cards, or
+ * a short price list if there are no photos), then a choice between shopping
+ * and talking to a person.
+ */
+async function greet(ctx: Ctx): Promise<Partial<Session>> {
+  const items = await activeItems(ctx.orgId);
+  if (!items.length) return showCatalog(ctx, ctx.org.greeting, 0);
+  const shown = items.slice(0, PAGE);
+  const shownPhotos = await showPhotos(ctx, shown, ctx.org.greeting);
+  const preview = shown.map((it, i) => `${i + 1}. ${it.name} — ${priceLine(it)}`).join('\n') + (items.length > PAGE ? `\n…and ${items.length - PAGE} more` : '');
+  await ctx.out.buttons({
+    body: [shownPhotos ? null : ctx.org.greeting, shownPhotos ? null : preview, 'Would you like to shop now, or chat with someone?'].filter(Boolean).join('\n\n'),
+    buttons: [{ id: A.shop, title: 'Shop now' }, { id: A.human, title: 'Chat with us' }],
+  });
+  return { step: 'browsing', catalogIds: items.map((i) => i.id), catalogPage: 0 };
+}
+
+async function chatWithSomeone(ctx: Ctx): Promise<Partial<Session>> {
+  await customerRef(ctx.orgId, ctx.waId).set({ needsHuman: true }, { merge: true });
+  await ctx.out.text(`Sure! Someone from ${ctx.org.name} will reply here shortly. Go ahead and type your message.\nTo shop anytime, reply "menu".`);
+  return { step: 'with_human', lastHandoffAt: Date.now() };
+}
+
+async function showCatalog(ctx: Ctx, prefix: string | undefined, page: number, photos = true): Promise<Partial<Session>> {
   const items = await activeItems(ctx.orgId);
   const words = vocabulary(ctx.org.businessType);
   if (!items.length) {
@@ -242,7 +272,7 @@ async function showCatalog(ctx: Ctx, prefix: string | undefined, page: number): 
   const hasMore = start + PAGE < items.length;
   const rows = slice.map((it, i) => ({ id: `i:${it.id}`, title: `${start + i + 1}. ${it.name}`, description: priceLine(it) }));
   if (hasMore) rows.push({ id: A.more, title: 'More…', description: `${items.length - start - PAGE} more` });
-  const shownPhotos = await showPhotos(ctx, slice, prefix);
+  const shownPhotos = photos && (await showPhotos(ctx, slice, prefix));
   await ctx.out.list({
     body: [shownPhotos ? null : prefix, `${shownPhotos ? 'Or see the full list. ' : ''}Tap to choose, or just type what you want, e.g. "2 of number 3".`].filter(Boolean).join('\n\n'),
     button: words.button,
@@ -533,8 +563,9 @@ async function readFreeText(ctx: Ctx, text: string): Promise<Partial<Session>> {
 
   switch (intent.kind) {
     case 'MENU':
+      return showCatalog(ctx, undefined, 0);
     case 'GREETING':
-      return showCatalog(ctx, intent.kind === 'GREETING' ? ctx.org.greeting : undefined, 0);
+      return greet(ctx);
     case 'ORDER_STATUS':
       return replyOrderStatus(ctx, intent.orderNumber);
     case 'AVAILABILITY': {

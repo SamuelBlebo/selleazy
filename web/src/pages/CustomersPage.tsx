@@ -36,7 +36,7 @@ export function CustomersPage() {
       />
       <div className="mb-4"><SearchInput value={q} onChange={setQ} placeholder="Name, number or area" /></div>
       <div className="overflow-hidden rounded-2xl border border-line bg-surface">
-        <div className="hidden grid-cols-[minmax(180px,2fr)_80px_130px_120px_110px] gap-4 bg-raised px-4 py-2.5 font-cap text-[11px] font-semibold uppercase tracking-[0.12em] text-muted md:grid">
+        <div className="hidden grid-cols-[minmax(180px,2fr)_80px_130px_120px_110px] gap-4 bg-raised px-4 py-2.5 text-[11px] font-medium uppercase tracking-wider text-muted md:grid">
           <span>Customer</span><span className="text-right">Orders</span><span className="text-right">Spent</span><span>Last message</span><span>Tag</span>
         </div>
         {list.status === 'ready' && rows.length === 0 && <EmptyState title="No customers yet" description="Customers appear here the first time they message your WhatsApp number." />}

@@ -68,7 +68,7 @@ export function CatalogPage() {
               tabIndex={canEdit ? 0 : undefined}
               onClick={() => canEdit && setParams({ item: i.id })}
               onKeyDown={(e) => canEdit && (e.key === 'Enter' || e.key === ' ') && setParams({ item: i.id })}
-              className="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 first:border-t-0 hover:bg-[#FBF6EC] sm:grid-cols-[48px_minmax(0,2fr)_120px_110px_140px_60px]"
+              className="grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 first:border-t-0 hover:bg-raised/50 sm:grid-cols-[48px_minmax(0,2fr)_120px_110px_140px_60px]"
             >
               <span className="row-span-2 grid h-12 w-12 place-items-center overflow-hidden rounded-lg bg-raised text-muted sm:row-span-1">
                 {i.imageUrl ? <img src={i.imageUrl} alt="" className="h-full w-full object-cover" /> : <Icon name={i.kind === 'service' ? 'scissors' : 'image'} />}

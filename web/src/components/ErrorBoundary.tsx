@@ -36,7 +36,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     return (
       <div className="grid min-h-screen place-items-center bg-canvas p-6">
         <div className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 text-center shadow-card">
-          <h1 className="text-lg font-bold text-ink">Something went wrong</h1>
+          <h1 className="text-lg font-semibold text-ink">Something went wrong</h1>
           <p className="mt-2 text-sm text-muted">
             This page hit an unexpected error. Reloading usually fixes it — if it keeps happening, let us know.
           </p>

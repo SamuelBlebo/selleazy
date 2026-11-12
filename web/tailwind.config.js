@@ -5,8 +5,7 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
-      // Kasa palette (approved in the Phase 2 prototype): cotton ground, wax indigo,
-      // ochre for money and attention, leaf green for done, red only for faults.
+      // Values live in src/index.css.
       colors: {
         canvas: c('canvas'),
         surface: c('surface'),
@@ -15,6 +14,7 @@ export default {
         line2: c('line2'),
         ink: c('ink'),
         muted: c('muted'),
+        chat: c('chat'),
         brand: { DEFAULT: c('brand'), 2: c('brand2'), soft: c('brand-soft'), ink: c('brand-ink'), on: c('on-brand'), dim: c('on-brand-dim') },
         accent: { DEFAULT: c('accent'), soft: c('accent-soft'), ink: c('accent-ink') },
         ok: { DEFAULT: c('ok'), soft: c('ok-soft'), ink: c('ok-ink') },
@@ -24,13 +24,14 @@ export default {
         info: c('brand'),
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
-        cap: ['Bahnschrift SemiCondensed', 'Bahnschrift', 'Roboto Condensed', 'Arial Narrow', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        cap: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         mono: ['ui-monospace', 'Cascadia Mono', 'Consolas', 'monospace'],
       },
-      borderRadius: { xl: '0.75rem', '2xl': '1rem' },
+      borderRadius: { xl: '0.625rem', '2xl': '0.75rem' },
       boxShadow: {
-        card: '0 1px 2px rgb(45 32 8 / 0.06), 0 8px 24px -12px rgb(45 32 8 / 0.22)',
+        card: '0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06)',
+        pop: '0 12px 32px -8px rgb(16 24 40 / 0.18)',
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },

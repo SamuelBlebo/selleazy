@@ -125,7 +125,7 @@ export function LoginPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-ink">Sign in</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-ink">Sign in</h1>
       <p className="mt-1 text-sm text-muted">Welcome back.</p>
 
       <div className="mt-6 inline-flex gap-1 rounded-xl border border-line bg-raised p-1">

@@ -36,7 +36,7 @@ export function Segmented<T extends string>({
   options: Array<{ value: T; label: ReactNode; count?: number }>;
 }) {
   return (
-    <div role="tablist" className="flex max-w-full gap-1 overflow-x-auto rounded-full bg-raised p-1 [scrollbar-width:none]">
+    <div role="tablist" className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-raised p-1 [scrollbar-width:none]">
       {options.map((o) => (
         <button
           key={o.value}
@@ -45,7 +45,7 @@ export function Segmented<T extends string>({
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            'shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-semibold',
+            'shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-medium',
             value === o.value ? 'bg-surface text-ink shadow-card' : 'text-muted hover:text-ink',
           )}
         >
@@ -61,12 +61,12 @@ export function SearchInput({ value, onChange, placeholder }: { value: string; o
   return (
     <label className="relative block w-full sm:max-w-xs">
       <span className="sr-only">{placeholder}</span>
-      <Icon name="search" className="pointer-events-none absolute left-3 top-2.5 text-muted" />
+      <Icon name="search" className="pointer-events-none absolute left-3 top-2 text-muted" />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full rounded-full border border-line2 bg-white pl-10 pr-4 text-sm placeholder:text-muted focus:border-brand focus:outline-none"
+        className="h-9 w-full rounded-lg border border-line2 bg-white pl-10 pr-4 text-sm shadow-sm placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/10"
       />
     </label>
   );
@@ -91,18 +91,18 @@ export function Drawer({ open, title, onClose, children, footer }: { open: boole
   if (!open) return null;
   return (
     <>
-      <div className="fixed inset-0 z-40 animate-fade-in bg-[#14121e]/40" onClick={onClose} />
+      <div className="fixed inset-0 z-40 animate-fade-in bg-ink/30" onClick={onClose} />
       <aside
         ref={panel}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[520px] animate-slide-in flex-col bg-canvas shadow-2xl outline-none"
+        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[520px] animate-slide-in flex-col bg-surface shadow-pop outline-none border-l border-line"
       >
         <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-5 py-3.5">
           <h2 className="truncate text-lg font-semibold">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-full hover:bg-raised">
+          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg text-muted hover:bg-raised hover:text-ink">
             <Icon name="x" />
           </button>
         </div>
@@ -118,7 +118,7 @@ export function SettingRow({ title, hint, children }: { title: string; hint?: st
   return (
     <div className="flex items-center justify-between gap-5 border-t border-line py-3.5 first:border-t-0">
       <div>
-        <p className="font-semibold">{title}</p>
+        <p className="font-medium">{title}</p>
         {hint && <p className="mt-0.5 text-sm text-muted">{hint}</p>}
       </div>
       {children}
@@ -129,9 +129,9 @@ export function SettingRow({ title, hint, children }: { title: string; hint?: st
 export function Textarea({ label, hint, className, ...rest }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; hint?: string }) {
   return (
     <label className="block space-y-1.5">
-      {label && <span className="block text-sm font-semibold">{label}</span>}
+      {label && <span className="block text-sm font-medium">{label}</span>}
       <textarea
-        className={cn('min-h-[84px] w-full rounded-xl border border-line2 bg-white px-3 py-2.5 text-sm placeholder:text-muted focus:border-brand focus:outline-none', className)}
+        className={cn('min-h-[84px] w-full rounded-lg border border-line2 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/10', className)}
         {...rest}
       />
       {hint && <span className="block text-xs text-muted">{hint}</span>}
