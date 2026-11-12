@@ -62,7 +62,8 @@ service cloud.firestore {
       allow create, delete: if false; // createOrganization / deleteMerchant only
       // Owner settings. Never plan, suspension, WhatsApp mirror, counters or ownership.
       allow update: if roleIn(orgId, ['owner'])
-        && onlyChanges(['name', 'phone', 'area', 'category', 'businessType', 'deliveryFeeMinor', 'features', 'bot', 'momo', 'updatedAt'])
+        && onlyChanges(['name', 'phone', 'area', 'category', 'businessType', 'deliveryFeeMinor', 'features', 'bot', 'momo', 'currency', 'updatedAt'])
+        && request.resource.data.currency in ['GHS', 'NGN', 'USD', 'GBP', 'EUR', 'KES', 'ZAR']
         && request.resource.data.deliveryFeeMinor is int && request.resource.data.deliveryFeeMinor >= 0
         && request.resource.data.businessType in ['food', 'retail', 'services', 'mixed'];
 

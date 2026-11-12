@@ -1,14 +1,14 @@
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import type { BusinessType, CatalogItem, Fulfilment, ItemKind, OrgFeatures, WhatsappAccount } from '../domain/model';
-import { formatCedis, parseCedis } from '../domain/money';
+import { formatMoney, parseAmount, type Currency } from '../domain/money';
 import { DRAFT_THRESHOLD, nlu, readWhen, type NluCatalogItem } from '../nlu';
 import { guessNetwork } from '../payments/providers';
 import { placeOrder } from '../services/orders';
 import { submitPayment } from '../services/payments';
 import { customerRef, draftOrdersRef, itemsRef, messagesRef, ordersRef, orgRef, sessionsRef } from '../tenant';
 import { Outbox } from './client';
-import { FULFILMENT_LABEL, formatWhen, linesSummary, paymentInstructions, vocabulary } from './copy';
+import { FULFILMENT_LABEL, formatDuration, formatWhen, linesSummary, paymentInstructions, vocabulary } from './copy';
 
 /**
  * The WhatsApp ordering bot. Ported from OrderFlow's Cloudflare Worker
@@ -75,6 +75,7 @@ interface Org {
   businessType: BusinessType;
   features: OrgFeatures;
   deliveryFeeMinor: number;
+  currency: Currency;
   greeting: string;
   menuBot: boolean;
   freeText: boolean;
@@ -126,6 +127,7 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
     businessType: (o.businessType as BusinessType) ?? 'retail',
     features: (o.features as OrgFeatures) ?? { kitchen: false, bookings: false, delivery: true, pickup: true, onSite: false },
     deliveryFeeMinor: (o.deliveryFeeMinor as number) ?? 0,
+    currency: (o.currency as Currency) ?? 'GHS',
     greeting: (o.bot?.greeting as string) ?? `Welcome to ${(o.name as string) ?? 'our shop'}!`,
     menuBot: o.bot?.menuEnabled !== false,
     freeText: o.bot?.freeTextEnabled !== false,
@@ -234,7 +236,7 @@ async function getItem(ctx: Ctx, id: string): Promise<Item | null> {
   return item.active ? item : null;
 }
 
-const priceLine = (i: Item) => `${formatCedis(i.priceMinor)}${i.kind === 'service' && i.durationMinutes ? ` · ${i.durationMinutes} min` : ''}`;
+const priceLine = (i: Item, currency: Currency) => `${formatMoney(i.priceMinor, currency)}${i.kind === 'service' && i.durationMinutes ? ` · ${formatDuration(i.durationMinutes)}` : ''}`;
 
 /**
  * Reply to "hi": the greeting with a look at what's on offer (photo cards, or
@@ -246,7 +248,7 @@ async function greet(ctx: Ctx): Promise<Partial<Session>> {
   if (!items.length) return showCatalog(ctx, ctx.org.greeting, 0);
   const shown = items.slice(0, PAGE);
   const shownPhotos = await showPhotos(ctx, shown, ctx.org.greeting);
-  const preview = shown.map((it, i) => `${i + 1}. ${it.name} — ${priceLine(it)}`).join('\n') + (items.length > PAGE ? `\n…and ${items.length - PAGE} more` : '');
+  const preview = shown.map((it, i) => `${i + 1}. ${it.name} — ${priceLine(it, ctx.org.currency)}`).join('\n') + (items.length > PAGE ? `\n…and ${items.length - PAGE} more` : '');
   await ctx.out.buttons({
     body: [shownPhotos ? null : ctx.org.greeting, shownPhotos ? null : preview, 'Would you like to shop now, or chat with someone?'].filter(Boolean).join('\n\n'),
     buttons: [{ id: A.shop, title: 'Shop now' }, { id: A.human, title: 'Chat with us' }],
@@ -270,7 +272,7 @@ async function showCatalog(ctx: Ctx, prefix: string | undefined, page: number, p
   const start = page * PAGE < items.length ? page * PAGE : 0;
   const slice = items.slice(start, start + PAGE);
   const hasMore = start + PAGE < items.length;
-  const rows = slice.map((it, i) => ({ id: `i:${it.id}`, title: `${start + i + 1}. ${it.name}`, description: priceLine(it) }));
+  const rows = slice.map((it, i) => ({ id: `i:${it.id}`, title: `${start + i + 1}. ${it.name}`, description: priceLine(it, ctx.org.currency) }));
   if (hasMore) rows.push({ id: A.more, title: 'More…', description: `${items.length - start - PAGE} more` });
   const shownPhotos = photos && (await showPhotos(ctx, slice, prefix));
   await ctx.out.list({
@@ -292,7 +294,7 @@ async function showPhotos(ctx: Ctx, items: Item[], prefix: string | undefined): 
   if (!withPhoto.length) return false;
   const buttonTitle = (i: Item) => (i.kind === 'service' ? 'Book this' : 'Add to cart');
   // A card allows 160 characters and at most two line breaks.
-  const cardBody = (i: Item) => [`*${i.name}*`, priceLine(i), i.description?.replace(/\s+/g, ' ').trim() || null].filter(Boolean).join('\n');
+  const cardBody = (i: Item) => [`*${i.name}*`, priceLine(i, ctx.org.currency), i.description?.replace(/\s+/g, ' ').trim() || null].filter(Boolean).join('\n');
   const body = [prefix, 'Swipe to see more, then tap a button to choose.'].filter(Boolean).join('\n\n');
 
   const result = withPhoto.length === 1
@@ -314,7 +316,7 @@ async function pickFromCatalog(ctx: Ctx, text: string): Promise<Item | null> {
 
 async function askQty(ctx: Ctx, item: Item): Promise<Partial<Session>> {
   if (item.kind === 'service') return addToCart(ctx, item, 1);
-  await ctx.out.text(`${item.name} — ${formatCedis(item.priceMinor)}\nHow many? Reply with a number, e.g. 2`);
+  await ctx.out.text(`${item.name} — ${formatMoney(item.priceMinor, ctx.org.currency)}\nHow many? Reply with a number, e.g. 2`);
   return { step: 'awaiting_qty', pendingItemId: item.id };
 }
 
@@ -343,15 +345,15 @@ async function addToCart(ctx: Ctx, item: Item, qty: number): Promise<Partial<Ses
     ? ctx.s.cart.map((l) => (l.itemId === item.id ? { ...l, quantity: Math.min(99, l.quantity + qty) } : l))
     : [...ctx.s.cart, line];
   await ctx.out.buttons({
-    body: `Added.\n${cartText(cart)}`,
+    body: `Added.\n${cartText(cart, ctx.org.currency)}`,
     buttons: [{ id: A.addMore, title: 'Add more' }, { id: A.checkout, title: 'Checkout' }],
   });
   return { step: 'browsing', cart, pendingItemId: null };
 }
 
 const cartTotal = (cart: CartLine[]) => cart.reduce((s, l) => s + l.priceMinor * l.quantity, 0);
-const cartText = (cart: CartLine[]) =>
-  `${linesSummary(cart.map((l) => ({ name: l.name, quantity: l.quantity, unitPriceMinor: l.priceMinor })))}\nSubtotal: ${formatCedis(cartTotal(cart))}`;
+const cartText = (cart: CartLine[], currency: Currency) =>
+  `${linesSummary(cart.map((l) => ({ name: l.name, quantity: l.quantity, unitPriceMinor: l.priceMinor })), currency)}\nSubtotal: ${formatMoney(cartTotal(cart), currency)}`;
 
 async function showCart(ctx: Ctx): Promise<Partial<Session>> {
   if (!ctx.s.cart.length) {
@@ -359,7 +361,7 @@ async function showCart(ctx: Ctx): Promise<Partial<Session>> {
     return { step: 'idle' };
   }
   await ctx.out.buttons({
-    body: `${cartText(ctx.s.cart)}\n\nTo change an item, reply "qty 2 3" or "remove 2".`,
+    body: `${cartText(ctx.s.cart, ctx.org.currency)}\n\nTo change an item, reply "qty 2 3" or "remove 2".`,
     buttons: [{ id: A.checkout, title: 'Checkout' }, { id: A.addMore, title: 'Add more' }, { id: A.clear, title: 'Empty cart' }],
   });
   return { step: 'browsing' };
@@ -372,7 +374,7 @@ async function editCart(ctx: Ctx, position: number, qty: number): Promise<Partia
     return {};
   }
   const cart = qty === 0 ? ctx.s.cart.filter((_, i) => i !== idx) : ctx.s.cart.map((l, i) => (i === idx ? { ...l, quantity: Math.min(99, qty) } : l));
-  await ctx.out.text(cart.length ? `Updated.\n${cartText(cart)}` : 'Removed. Your cart is empty.');
+  await ctx.out.text(cart.length ? `Updated.\n${cartText(cart, ctx.org.currency)}` : 'Removed. Your cart is empty.');
   return { cart };
 }
 
@@ -468,9 +470,9 @@ async function promptConfirm(ctx: Ctx, prefix?: string): Promise<Partial<Session
   await ctx.out.buttons({
     body: [
       prefix,
-      cartText(s.cart),
-      fee ? `Delivery: ${formatCedis(fee)}` : null,
-      `Total: ${formatCedis(cartTotal(s.cart) + fee)}`,
+      cartText(s.cart, ctx.org.currency),
+      fee ? `Delivery: ${formatMoney(fee, ctx.org.currency)}` : null,
+      `Total: ${formatMoney(cartTotal(s.cart) + fee, ctx.org.currency)}`,
       s.fulfilment ? `${FULFILMENT_LABEL[s.fulfilment]}${s.address ? `: ${s.address}` : ''}` : null,
       when ? `Requested time: ${when}` : null,
     ].filter(Boolean).join('\n'),
@@ -507,10 +509,10 @@ async function confirmCheckout(ctx: Ctx): Promise<Partial<Session>> {
   const noun = s.cart.every((l) => l.kind === 'service') ? vocabulary(ctx.org.businessType).order : 'order';
   await ctx.out.text(
     [
-      `${noun[0].toUpperCase()}${noun.slice(1)} #${result.number} received. Total ${formatCedis(result.totalMinor)}.`,
+      `${noun[0].toUpperCase()}${noun.slice(1)} #${result.number} received. Total ${formatMoney(result.totalMinor, ctx.org.currency)}.`,
       s.timeRequest ? 'We will confirm your time shortly.' : null,
       '',
-      paymentInstructions(result.totalMinor, ctx.org.momo),
+      paymentInstructions(result.totalMinor, ctx.org.momo, ctx.org.currency),
     ].filter((l) => l !== null).join('\n'),
   );
   return { step: 'idle', cart: [], pendingItemId: null, fulfilment: null, address: null, timeRequest: null, timeAt: null };
@@ -544,7 +546,7 @@ async function maybeCapturePayment(ctx: Ctx, text: string): Promise<boolean> {
     method: 'momo',
     network: guessNetwork(text),
     reference: candidates[0],
-    amountMinor: parseCedis(text),
+    amountMinor: parseAmount(text, ctx.org.currency),
     payerPhone: `+${ctx.waId}`,
     source: 'whatsapp',
     by: 'bot',
@@ -570,7 +572,7 @@ async function readFreeText(ctx: Ctx, text: string): Promise<Partial<Session>> {
       return replyOrderStatus(ctx, intent.orderNumber);
     case 'AVAILABILITY': {
       const found = items.filter((i) => intent.itemIds.includes(i.id));
-      await ctx.out.text(found.map((i) => `Yes, ${i.name} is available: ${priceLine(i)}.`).join('\n') + '\nReply "menu" to order.');
+      await ctx.out.text(found.map((i) => `Yes, ${i.name} is available: ${priceLine(i, ctx.org.currency)}.`).join('\n') + '\nReply "menu" to order.');
       return {};
     }
     case 'ORDER':

@@ -9,7 +9,7 @@ import { orderRef } from '@/firebase';
 import { recordPayment, setAppointment, setOrderNote, updateOrderStatus } from '@/services';
 import type { Order, OrderStatus, WithId } from '@/types';
 import { toMessage } from '@/utils/errors';
-import { cedis, formatDate, formatPhone, time, toDatetimeLocalInput, toMinor } from '@/utils/format';
+import { money, duration, formatDate, formatPhone, time, toDatetimeLocalInput, toMinor, currencySymbol } from '@/utils/format';
 
 const STATUS_TONE: Record<OrderStatus, Tone> = {
   pending: 'accent',
@@ -148,20 +148,20 @@ function OrderDetail({ order }: { order: WithId<Order> }) {
               <tr key={l.itemId}>
                 <td className="py-1">
                   {l.quantity}× {l.name}
-                  {l.durationMinutes ? <span className="text-muted"> · {l.durationMinutes} min</span> : null}
+                  {l.durationMinutes ? <span className="text-muted"> · {duration(l.durationMinutes)}</span> : null}
                 </td>
-                <td className="tabular py-1 text-right">{cedis(l.unitPriceMinor * l.quantity)}</td>
+                <td className="tabular py-1 text-right">{money(l.unitPriceMinor * l.quantity)}</td>
               </tr>
             ))}
             {order.deliveryFeeMinor > 0 && (
               <tr>
                 <td className="py-1 text-muted">Delivery</td>
-                <td className="tabular py-1 text-right">{cedis(order.deliveryFeeMinor)}</td>
+                <td className="tabular py-1 text-right">{money(order.deliveryFeeMinor)}</td>
               </tr>
             )}
             <tr className="border-t border-line font-bold">
               <td className="pt-2">Total</td>
-              <td className="tabular pt-2 text-right">{cedis(order.totalMinor)}</td>
+              <td className="tabular pt-2 text-right">{money(order.totalMinor)}</td>
             </tr>
           </tbody>
         </table>
@@ -196,8 +196,8 @@ function OrderDetail({ order }: { order: WithId<Order> }) {
         action={canPay && due > 0 && order.status !== 'cancelled' && !pay.open ? <Button size="sm" variant="secondary" onClick={() => setPay({ ...pay, open: true })}>Record payment</Button> : undefined}
       >
         <p className="text-sm">
-          Paid <b className="tabular">{cedis(order.paidMinor)}</b> of <span className="tabular">{cedis(order.totalMinor)}</span>
-          {due > 0 && <span className="text-muted"> · {cedis(due)} due</span>}
+          Paid <b className="tabular">{money(order.paidMinor)}</b> of <span className="tabular">{money(order.totalMinor)}</span>
+          {due > 0 && <span className="text-muted"> · {money(due)} due</span>}
         </p>
         {order.paymentState === 'submitted' && (
           <Link to="/payments" className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-ink underline">
@@ -210,7 +210,7 @@ function OrderDetail({ order }: { order: WithId<Order> }) {
               <option value="cash">Cash</option>
               <option value="momo">MoMo (I saw the SMS)</option>
             </Select>
-            <Input label="Amount (GH₵)" inputMode="decimal" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} />
+            <Input label={`Amount (${currencySymbol()})`} inputMode="decimal" value={pay.amount} onChange={(e) => setPay({ ...pay, amount: e.target.value })} />
             {pay.method === 'momo' && <Input label="Transaction ID" value={pay.reference} onChange={(e) => setPay({ ...pay, reference: e.target.value })} />}
             <div className="flex items-end gap-2 sm:col-span-2">
               <Button

@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { RulesEngine } = require('../lib/nlu/rules.js');
 const { readWhen } = require('../lib/nlu/when.js');
-const { parseCedis } = require('../lib/domain/money.js');
+const { parseAmount } = require('../lib/domain/money.js');
 const { canTransition, nextStatus } = require('../lib/domain/orderFlow.js');
 const { can } = require('../lib/domain/permissions.js');
 
@@ -63,11 +63,11 @@ test('readWhen: weekday + am/pm, tomorrow, bare time', () => {
   assert.equal(readWhen('2 jollof', now).at, null);
 });
 
-test('parseCedis reads amounts customers type', () => {
-  assert.equal(parseCedis("I've paid 50 cedis. ID 7731942056"), 5000);
-  assert.equal(parseCedis('GHS 45.50 sent'), 4550);
-  assert.equal(parseCedis('₵100'), 10000);
-  assert.equal(parseCedis('Sent. ID 52816047391'), null);
+test('parseAmount reads amounts customers type', () => {
+  assert.equal(parseAmount("I've paid 50 cedis. ID 7731942056"), 5000);
+  assert.equal(parseAmount('GHS 45.50 sent'), 4550);
+  assert.equal(parseAmount('₵100'), 10000);
+  assert.equal(parseAmount('Sent. ID 52816047391'), null);
 });
 
 test('order state machine', () => {

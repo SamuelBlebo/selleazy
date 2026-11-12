@@ -16,7 +16,7 @@ import { createManualOrder } from '@/services';
 import type { Fulfilment, Order, WithId } from '@/types';
 import { cn } from '@/utils/cn';
 import { toMessage } from '@/utils/errors';
-import { cedis, formatDate, shortWhen } from '@/utils/format';
+import { money, formatDate, shortWhen } from '@/utils/format';
 
 type Tab = 'new' | 'active' | 'bookings' | 'drafts' | 'done' | 'cancelled';
 
@@ -113,7 +113,7 @@ export function OrdersPage() {
                 <small className="block text-[13px] text-muted">{FULFILMENT_LABEL[o.fulfilment]}{o.deliveryAddress ? ` · ${o.deliveryAddress.split(',')[0]}` : ''}</small>
               </span>
               <span className="col-span-2 text-sm text-muted lg:col-span-1 lg:text-base lg:text-ink">{itemsText(o)}</span>
-              <span className="tabular col-start-2 row-start-1 text-right font-semibold lg:col-auto lg:row-auto lg:font-normal">{cedis(o.totalMinor)}</span>
+              <span className="tabular col-start-2 row-start-1 text-right font-semibold lg:col-auto lg:row-auto lg:font-normal">{money(o.totalMinor)}</span>
               <span className="col-start-1 lg:col-auto"><PayBadge order={o} /></span>
               <span className="col-start-2 text-right lg:col-auto lg:text-left"><StatusBadge order={o} /></span>
               <span className={cn('hidden justify-end lg:flex')}><NextStepButton order={o} /></span>
@@ -172,7 +172,7 @@ function ManualOrderDrawer({ open, onClose, onCreated }: { open: boolean; onClos
       open={open}
       title="New order"
       onClose={onClose}
-      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button loading={busy} onClick={() => void submit()}>Create · {cedis(total)}</Button></>}
+      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button loading={busy} onClick={() => void submit()}>Create · {money(total)}</Button></>}
     >
       <p className="mb-4 text-sm text-muted">For orders taken by phone or in person. Stock is set aside straight away.</p>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -192,7 +192,7 @@ function ManualOrderDrawer({ open, onClose, onCreated }: { open: boolean; onClos
           <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Choose an item" className="h-10 min-w-0 flex-1 rounded-xl border border-line2 bg-white px-3 text-sm">
             <option value="">Choose…</option>
             {live.items.filter((i) => i.active && !lines.some((l) => l.itemId === i.id)).map((i) => (
-              <option key={i.id} value={i.id}>{i.name} · {cedis(i.priceMinor)}</option>
+              <option key={i.id} value={i.id}>{i.name} · {money(i.priceMinor)}</option>
             ))}
           </select>
           <Button variant="secondary" disabled={!pick} onClick={() => { setLines([...lines, { itemId: pick, quantity: 1 }]); setPick(''); }}>Add</Button>

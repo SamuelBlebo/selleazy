@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/useToast';
 import { rejectPayment, verifyPayment } from '@/services';
 import type { MomoNetwork, Payment, WithId } from '@/types';
 import { toMessage } from '@/utils/errors';
-import { cedis, formatPhone, shortWhen } from '@/utils/format';
+import { money, formatPhone, shortWhen } from '@/utils/format';
 
 const NETWORK: Record<MomoNetwork, string> = { mtn: 'MTN MoMo', telecel: 'Telecel Cash', airteltigo: 'AirtelTigo Money' };
 type Tab = 'submitted' | 'verified' | 'rejected';
@@ -70,10 +70,10 @@ export function PaymentsPage() {
 const FLAG_TEXT = (p: Payment): string[] =>
   p.flags.map((f) =>
     f === 'amount_mismatch'
-      ? `Amount doesn't match. Due ${cedis(p.expectedMinor)}, customer says ${cedis(p.claimedMinor)}.`
+      ? `Amount doesn't match. Due ${money(p.expectedMinor)}, customer says ${money(p.claimedMinor)}.`
       : f === 'duplicate_reference'
         ? `This Transaction ID was already used for order #${p.duplicateOfOrderNumber}. It may be an old receipt.`
-        : `The customer didn't say how much. ${cedis(p.expectedMinor)} is due.`,
+        : `The customer didn't say how much. ${money(p.expectedMinor)} is due.`,
   );
 
 function PaymentCard({ p }: { p: WithId<Payment> }) {
@@ -114,10 +114,10 @@ function PaymentCard({ p }: { p: WithId<Payment> }) {
           <Link to={`/chats/${p.customerId}`} className="inline-flex items-center gap-1 text-[13px] font-semibold hover:underline"><Icon name="chat" className="h-4 w-4" /> Chat</Link>
         </div>
         <dl className="my-3 grid grid-cols-2 rounded-lg border border-line">
-          <div className="px-3 py-2.5"><dt className="cap text-muted">Due</dt><dd className="tabular mt-1 text-lg font-semibold">{cedis(p.expectedMinor)}</dd></div>
+          <div className="px-3 py-2.5"><dt className="cap text-muted">Due</dt><dd className="tabular mt-1 text-lg font-semibold">{money(p.expectedMinor)}</dd></div>
           <div className="border-l border-line px-3 py-2.5">
             <dt className="cap text-muted">Customer says</dt>
-            <dd className={`tabular mt-1 text-lg font-semibold ${p.flags.includes('amount_mismatch') ? 'text-danger' : ''}`}>{p.claimedMinor === null ? '—' : cedis(p.claimedMinor)}</dd>
+            <dd className={`tabular mt-1 text-lg font-semibold ${p.flags.includes('amount_mismatch') ? 'text-danger' : ''}`}>{p.claimedMinor === null ? '—' : money(p.claimedMinor)}</dd>
           </div>
         </dl>
         {p.reference && (

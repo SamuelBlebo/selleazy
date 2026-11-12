@@ -15,7 +15,7 @@ import { markChatRead, markHandled, sendReply } from '@/services';
 import type { Customer, DraftOrder, Message, WithId } from '@/types';
 import { cn } from '@/utils/cn';
 import { toMessage } from '@/utils/errors';
-import { cedis, formatPhone, initials, shortWhen, time } from '@/utils/format';
+import { money, formatPhone, initials, shortWhen, time } from '@/utils/format';
 
 const QUICK = ['Your order is on the way', 'Please send the MoMo Transaction ID', "We're closed now. We open at 8am", 'Thank you! Come again'];
 
@@ -194,7 +194,7 @@ function Thread({ waId }: { waId: string }) {
               </div>
               <div className="space-y-2 p-3.5 text-sm">
                 <p>{itemsText(latest)}</p>
-                <p className="flex items-center justify-between"><b className="tabular">{cedis(latest.totalMinor)}</b><PayBadge order={latest} /></p>
+                <p className="flex items-center justify-between"><b className="tabular">{money(latest.totalMinor)}</b><PayBadge order={latest} /></p>
               </div>
             </button>
             <div className="mt-3"><NextStepButton order={latest} size="md" /></div>
@@ -214,7 +214,7 @@ function CustomerSummary({ c }: { c: WithId<Customer> }) {
       <p className="text-lg font-semibold">{c.name ?? c.waProfileName ?? 'Customer'}</p>
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted">Orders</dt><dd className="tabular text-right">{c.orderCount}</dd>
-        <dt className="text-muted">Spent</dt><dd className="tabular text-right">{cedis(c.totalSpentMinor)}</dd>
+        <dt className="text-muted">Spent</dt><dd className="tabular text-right">{money(c.totalSpentMinor)}</dd>
         {c.address && (<><dt className="text-muted">Address</dt><dd className="text-right">{c.address}</dd></>)}
       </dl>
       {c.note && <p className="mt-3 rounded-lg bg-raised px-3 py-2 text-sm">{c.note}</p>}

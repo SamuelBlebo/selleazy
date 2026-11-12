@@ -1,7 +1,7 @@
 import { logger } from 'firebase-functions/v2';
 import { onCall } from 'firebase-functions/v2/https';
 import { z } from 'zod';
-import { formatCedis } from '../domain/money';
+import { formatMoney, type Currency } from '../domain/money';
 import { rejectPayment, submitPayment, verifyPayment } from '../services/payments';
 import { loadCredentialsForOrg, orgRef } from '../tenant';
 import { Outbox } from '../whatsapp/client';
@@ -21,12 +21,13 @@ export const verifyMomoPayment = onCall(async (request) => {
   const { orgId, uid } = await requireMember(request.auth, 'payments.verify');
   const { paymentId } = parse(z.object({ paymentId: z.string().min(1) }), request.data);
   const r = await verifyPayment(orgId, paymentId, uid);
+  const currency = ((await orgRef(orgId).get()).get('currency') as Currency) ?? 'GHS';
   await tellCustomer(
     orgId,
     r.customerId,
     r.fullyPaid
-      ? `Payment of ${formatCedis(r.amountMinor)} received for order #${r.orderNumber}. Thank you!`
-      : `We received ${formatCedis(r.amountMinor)} for order #${r.orderNumber}. ${formatCedis(r.balanceMinor)} is still due.`,
+      ? `Payment of ${formatMoney(r.amountMinor, currency)} received for order #${r.orderNumber}. Thank you!`
+      : `We received ${formatMoney(r.amountMinor, currency)} for order #${r.orderNumber}. ${formatMoney(r.balanceMinor, currency)} is still due.`,
   );
   return r;
 });
@@ -39,7 +40,7 @@ export const rejectMomoPayment = onCall(async (request) => {
   await tellCustomer(
     orgId,
     r.customerId,
-    `We couldn't confirm your payment for order #${r.orderNumber} (${reason.toLowerCase()}).\n\n${paymentInstructions(r.dueMinor, org.get('momo'))}`,
+    `We couldn't confirm your payment for order #${r.orderNumber} (${reason.toLowerCase()}).\n\n${paymentInstructions(r.dueMinor, org.get('momo'), (org.get('currency') as Currency) ?? 'GHS')}`,
   );
   return { ok: true as const };
 });

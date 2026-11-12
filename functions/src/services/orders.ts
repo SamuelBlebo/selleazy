@@ -97,7 +97,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       subtotalMinor,
       deliveryFeeMinor,
       totalMinor,
-      currency: 'GHS',
+      currency: (orgSnap.get('currency') as string) ?? 'GHS',
       note: input.note,
       cancelReason: null,
       rider: null,

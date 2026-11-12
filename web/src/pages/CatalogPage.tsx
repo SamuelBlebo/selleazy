@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/useToast';
 import { adjustStock, createItem, deleteItem, setItemActive, updateItem, type ItemInput } from '@/services';
 import type { CatalogItem, ItemKind, WithId } from '@/types';
 import { toMessage } from '@/utils/errors';
-import { cedis, shortWhen, toMinor } from '@/utils/format';
+import { money, duration, DURATION_UNITS, shortWhen, splitDuration, toMinor, type DurationUnit, currencySymbol } from '@/utils/format';
 
 export function CatalogPage() {
   const { org, words } = useOrg();
@@ -78,10 +78,10 @@ export function CatalogPage() {
                 <span className="block truncate text-[13px] text-muted">{i.aliases.length ? `Also: ${i.aliases.join(', ')}` : i.category}</span>
               </span>
               <span className="hidden text-muted sm:block">{i.category}</span>
-              <span className="tabular text-right font-semibold sm:font-normal">{cedis(i.priceMinor)}</span>
+              <span className="tabular text-right font-semibold sm:font-normal">{money(i.priceMinor)}</span>
               <span className="col-start-2 sm:col-start-auto">
                 {i.kind === 'service' ? (
-                  <span className="text-sm text-muted">{i.durationMinutes ? `${i.durationMinutes} min` : 'Service'}{i.requiresBooking ? ' · booking' : ''}</span>
+                  <span className="text-sm text-muted">{i.durationMinutes ? duration(i.durationMinutes) : 'Service'}{i.requiresBooking ? ' · booking' : ''}</span>
                 ) : !i.trackStock ? (
                   <span className="text-sm text-muted">Not tracked</span>
                 ) : i.stock === 0 ? (
@@ -129,7 +129,8 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
     trackStock: item?.trackStock ?? true,
     stock: '',
     lowStockAt: String(item?.lowStockAt ?? 5),
-    duration: item?.durationMinutes ? String(item.durationMinutes) : '',
+    duration: item?.durationMinutes ? String(splitDuration(item.durationMinutes).amount) : '',
+    durationUnit: (item?.durationMinutes ? splitDuration(item.durationMinutes).unit : 'minutes') as DurationUnit,
     requiresBooking: item?.requiresBooking ?? true,
     active: item?.active ?? true,
   });
@@ -159,7 +160,7 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
       trackStock: f.kind === 'product' && f.trackStock,
       stock: f.kind === 'product' && f.trackStock ? Math.max(0, parseInt(f.stock, 10) || 0) : 0,
       lowStockAt: Math.max(0, parseInt(f.lowStockAt, 10) || 0),
-      durationMinutes: f.kind === 'service' && f.duration ? Math.max(5, parseInt(f.duration, 10) || 0) : null,
+      durationMinutes: f.kind === 'service' && f.duration ? Math.max(5, (parseInt(f.duration, 10) || 0) * (DURATION_UNITS.find((u) => u.value === f.durationUnit)?.minutes ?? 1)) : null,
       requiresBooking: f.kind === 'service' && f.requiresBooking,
     };
     setBusy(true);
@@ -214,7 +215,7 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
       <div className="space-y-3">
         <Input label="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder={f.kind === 'service' ? 'e.g. Box braids' : 'e.g. Ankara dress'} />
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input label="Price (GH₵)" inputMode="decimal" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} placeholder="45.00" />
+          <Input label={`Price (${currencySymbol()})`} inputMode="decimal" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} placeholder="45.00" />
           <div>
             <Input label="Category" list="cats" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })} placeholder="e.g. Dresses" />
             <datalist id="cats">{categories.map((c) => <option key={c} value={c} />)}</datalist>
@@ -231,7 +232,12 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input label="How long (minutes)" inputMode="numeric" value={f.duration} onChange={(e) => setF({ ...f, duration: e.target.value })} placeholder="90" />
+            <div className="grid grid-cols-2 gap-2">
+              <Input label="How long" inputMode="numeric" value={f.duration} onChange={(e) => setF({ ...f, duration: e.target.value })} placeholder="90" />
+              <Select label="Unit" value={f.durationUnit} onChange={(e) => setF({ ...f, durationUnit: e.target.value as DurationUnit })}>
+                {DURATION_UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+              </Select>
+            </div>
             <label className="flex items-center justify-between gap-3 self-end pb-2">
               <span className="text-sm font-semibold">Needs a booking time</span>
               <Switch checked={f.requiresBooking} label="Needs a booking time" onChange={(v) => setF({ ...f, requiresBooking: v })} />

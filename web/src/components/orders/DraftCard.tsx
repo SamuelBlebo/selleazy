@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/useToast';
 import { acceptDraftOrder, dismissDraftOrder } from '@/services';
 import type { DraftOrder, Fulfilment, WithId } from '@/types';
 import { toMessage } from '@/utils/errors';
-import { cedis, time, toDatetimeLocalInput } from '@/utils/format';
+import { money, time, toDatetimeLocalInput } from '@/utils/format';
 
 /**
  * A typed order SellEazy read from chat (ShopFlow's "draft, human confirms").
@@ -69,14 +69,14 @@ export function DraftCard({ draft }: { draft: WithId<DraftOrder> }) {
               <div key={l.itemId} className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
                 <span>
                   {it?.name ?? 'Removed item'}
-                  <span className="block text-xs text-muted">{it ? `${cedis(it.priceMinor)} each${it.kind === 'product' && it.trackStock ? ` · ${it.stock} in stock` : ''}` : ''}</span>
+                  <span className="block text-xs text-muted">{it ? `${money(it.priceMinor)} each${it.kind === 'product' && it.trackStock ? ` · ${it.stock} in stock` : ''}` : ''}</span>
                 </span>
                 <span className="inline-flex items-center rounded-full border border-line2">
                   <button type="button" className="h-8 w-8 rounded-full text-lg font-semibold hover:bg-raised" onClick={() => setQty(i, -1)} aria-label={`Fewer ${it?.name}`}>−</button>
                   <span className="tabular min-w-6 text-center font-semibold">{l.quantity}</span>
                   <button type="button" className="h-8 w-8 rounded-full text-lg font-semibold hover:bg-raised" onClick={() => setQty(i, 1)} aria-label={`More ${it?.name}`}>+</button>
                 </span>
-                <span className="tabular w-24 text-right">{cedis((it?.priceMinor ?? 0) * l.quantity)}</span>
+                <span className="tabular w-24 text-right">{money((it?.priceMinor ?? 0) * l.quantity)}</span>
               </div>
             );
           })}
@@ -101,7 +101,7 @@ export function DraftCard({ draft }: { draft: WithId<DraftOrder> }) {
         </div>
         <div className="mt-3 flex justify-between border-t border-line pt-3 font-bold">
           <span>Total{fee ? ' incl. delivery' : ''}</span>
-          <span className="tabular">{cedis(total)}</span>
+          <span className="tabular">{money(total)}</span>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="ok" loading={busy === 'ok'} onClick={() => void accept()}>

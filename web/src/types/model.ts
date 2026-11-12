@@ -1,3 +1,4 @@
+import type { Currency } from '@/utils/format';
 import type { Timestamp } from 'firebase/firestore';
 
 /**
@@ -52,7 +53,7 @@ export interface Organization {
   area: string | null;
   businessType: BusinessType;
   category: string;
-  currency: 'GHS';
+  currency: Currency;
   deliveryFeeMinor: number;
   features: OrgFeatures;
   ownerUid: string;

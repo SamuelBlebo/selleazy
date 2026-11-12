@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { CatalogItem, OrderStatus } from '../domain/model';
 import { can } from '../domain/permissions';
 import { placeOrder, transitionOrder } from '../services/orders';
-import { formatCedis } from '../domain/money';
+import { formatMoney, type Currency } from '../domain/money';
 import { db, draftOrdersRef, itemsRef, loadCredentialsForOrg, ordersRef, orgRef, stockMovementsRef, toWaId } from '../tenant';
 import { Outbox } from '../whatsapp/client';
 import { linesSummary, paymentInstructions } from '../whatsapp/copy';
@@ -111,14 +111,15 @@ export const acceptDraftOrder = onCall(async (request) => {
   // Tell the customer what was confirmed and how to pay. Best-effort: the order stands either way.
   try {
     const [creds, org] = await Promise.all([loadCredentialsForOrg(orgId), orgRef(orgId).get()]);
+    const currency = (org.get('currency') as Currency) ?? 'GHS';
     if (creds) {
       await new Outbox(creds, orgId, waId, 'bot').text(
         [
           `Order #${result.number} confirmed:`,
-          linesSummary(result.lines),
-          `Total: ${formatCedis(result.totalMinor)}`,
+          linesSummary(result.lines, currency),
+          `Total: ${formatMoney(result.totalMinor, currency)}`,
           '',
-          paymentInstructions(result.totalMinor, org.get('momo')),
+          paymentInstructions(result.totalMinor, org.get('momo'), currency),
         ].join('\n'),
       );
     }

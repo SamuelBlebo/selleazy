@@ -1,5 +1,5 @@
 import type { BusinessType, Fulfilment, OrderLine, OrderStatus } from '../domain/model';
-import { formatCedis } from '../domain/money';
+import { formatMoney, type Currency } from '../domain/money';
 
 /** Words that change with what the merchant sells. */
 export function vocabulary(type: BusinessType) {
@@ -25,8 +25,8 @@ export function formatWhen(at: Date): string {
   return at.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Accra' });
 }
 
-export function linesSummary(lines: Array<Pick<OrderLine, 'name' | 'quantity' | 'unitPriceMinor'>>): string {
-  return lines.map((l, i) => `${i + 1}. ${l.quantity} × ${l.name}  ${formatCedis(l.unitPriceMinor * l.quantity)}`).join('\n');
+export function linesSummary(lines: Array<Pick<OrderLine, 'name' | 'quantity' | 'unitPriceMinor'>>, currency: Currency = 'GHS'): string {
+  return lines.map((l, i) => `${i + 1}. ${l.quantity} × ${l.name}  ${formatMoney(l.unitPriceMinor * l.quantity, currency)}`).join('\n');
 }
 
 export interface StatusContext {
@@ -65,7 +65,7 @@ export function statusMessage(status: OrderStatus, c: StatusContext): string | n
   }
 }
 
-export function paymentInstructions(totalMinor: number, momo: { mtn?: string | null; telecel?: string | null; airteltigo?: string | null; accountName?: string | null } | undefined): string {
+export function paymentInstructions(totalMinor: number, momo: { mtn?: string | null; telecel?: string | null; airteltigo?: string | null; accountName?: string | null } | undefined, currency: Currency = 'GHS'): string {
   const lines = [
     momo?.mtn ? `MTN MoMo: ${momo.mtn}` : null,
     momo?.telecel ? `Telecel Cash: ${momo.telecel}` : null,
@@ -73,7 +73,7 @@ export function paymentInstructions(totalMinor: number, momo: { mtn?: string | n
   ].filter(Boolean);
   if (!lines.length) return 'We will message you here to confirm.';
   return [
-    `To pay, send ${formatCedis(totalMinor)} by mobile money to:`,
+    `To pay, send ${formatMoney(totalMinor, currency)} by mobile money to:`,
     ...lines,
     momo?.accountName ? `Name: ${momo.accountName}` : null,
     '',
@@ -81,4 +81,13 @@ export function paymentInstructions(totalMinor: number, momo: { mtn?: string | n
   ]
     .filter((l) => l !== null)
     .join('\n');
+}
+
+/** Same as the web's duration(): 90 → "90 min", 120 → "2 hours", 43200 → "1 month". */
+export function formatDuration(minutes: number): string {
+  const units: Array<[string, number]> = [['month', 43200], ['day', 1440], ['hour', 60]];
+  const [name, size] = units.find(([, m]) => minutes % m === 0) ?? ['', 1];
+  if (!name) return `${minutes} min`;
+  const n = minutes / size;
+  return `${n} ${name}${n === 1 ? '' : 's'}`;
 }

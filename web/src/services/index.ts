@@ -41,7 +41,7 @@ export interface CreateOrganizationInput {
 export const createOrganization = (input: CreateOrganizationInput) => call<CreateOrganizationInput, { orgId: string }>('createOrganization', input);
 export const acceptInvite = () => call<void, { joined: boolean; orgName?: string }>('acceptInvite');
 
-type SettingsPatch = Partial<Pick<Organization, 'name' | 'phone' | 'area' | 'category' | 'businessType' | 'deliveryFeeMinor' | 'features' | 'bot' | 'momo'>>;
+type SettingsPatch = Partial<Pick<Organization, 'name' | 'phone' | 'area' | 'category' | 'businessType' | 'deliveryFeeMinor' | 'features' | 'bot' | 'momo' | 'currency'>>;
 /** Owner-only settings; firestore.rules limits which fields this can touch. */
 export function updateSettings(orgId: string, patch: SettingsPatch) {
   return updateDoc(orgRef(orgId), { ...patch, updatedAt: serverTimestamp() } as never);

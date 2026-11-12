@@ -9,7 +9,7 @@ import { LiveProvider, useLive } from '@/context/LiveContext';
 import { useAuth } from '@/hooks/useAuth';
 import { signOutUser } from '@/services';
 import { cn } from '@/utils/cn';
-import { cedis, initials } from '@/utils/format';
+import { money, initials, setMoneyCurrency } from '@/utils/format';
 
 interface NavItem {
   to: string;
@@ -48,7 +48,7 @@ function TodayBar() {
   const parts: Array<{ to?: string; strong?: string; text: string }> = [
     { text: date },
     { to: '/orders', strong: String(open.length), text: `${words.order}s today` },
-    ...(showMoney ? [{ strong: cedis(live.takenTodayMinor), text: 'taken' }, { to: '/payments', strong: String(live.paymentsToCheck), text: 'MoMo to check' }] : []),
+    ...(showMoney ? [{ strong: money(live.takenTodayMinor), text: 'taken' }, { to: '/payments', strong: String(live.paymentsToCheck), text: 'MoMo to check' }] : []),
     ...(can(profile?.role, 'inbox.reply') ? [{ to: '/chats', strong: String(live.needsReply), text: 'waiting for you' }] : []),
     ...(live.lowStock.length ? [{ to: '/catalog', strong: String(live.lowStock.length), text: 'low stock' }] : []),
   ];
@@ -164,6 +164,8 @@ function Shell() {
 }
 
 export function DashboardLayout() {
+  const { org } = useAuth();
+  setMoneyCurrency(org?.currency);
   return (
     <LiveProvider>
       <Shell />

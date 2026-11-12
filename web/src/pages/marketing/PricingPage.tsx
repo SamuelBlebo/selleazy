@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button, Icon } from '@/components/ui';
 import { PLANS } from '@/config/plans';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { cedis } from '@/utils/format';
+import { money } from '@/utils/format';
 
 export function PricingPage() {
   usePageTitle('Pricing');
@@ -14,7 +14,7 @@ export function PricingPage() {
         {PLANS.map((p) => (
           <article key={p.id} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
             <h2 className="font-semibold">{p.name}</h2>
-            <p className="tabular text-3xl font-semibold">{cedis(p.priceMinor).replace('.00', '')}<span className="text-sm font-medium text-muted"> / month</span></p>
+            <p className="tabular text-3xl font-semibold">{money(p.priceMinor, 'GHS').replace('.00', '')}<span className="text-sm font-medium text-muted"> / month</span></p>
             <ul className="space-y-2 text-sm">
               {p.features.map((f) => <li key={f} className="flex gap-2"><Icon name="check" className="mt-0.5 h-4 w-4 text-ok" />{f}</li>)}
             </ul>

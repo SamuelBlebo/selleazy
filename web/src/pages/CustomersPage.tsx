@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/useToast';
 import { saveCustomerNote, sendBroadcast } from '@/services';
 import type { Customer, WithId } from '@/types';
 import { toMessage } from '@/utils/errors';
-import { cedis, formatPhone, shortWhen } from '@/utils/format';
+import { money, formatPhone, shortWhen } from '@/utils/format';
 
 export function CustomersPage() {
   usePageTitle('Customers');
@@ -52,7 +52,7 @@ export function CustomersPage() {
               <span className="tabular block text-[13px] text-muted">{formatPhone(c.phone)}{c.address ? ` · ${c.address.split(',')[0]}` : ''}</span>
             </span>
             <span className="tabular hidden text-right md:block">{c.orderCount}</span>
-            <span className="tabular text-right">{cedis(c.totalSpentMinor)}</span>
+            <span className="tabular text-right">{money(c.totalSpentMinor)}</span>
             <span className="tabular hidden text-muted md:block">{shortWhen(c.lastMessageAt)}</span>
             <span className="hidden md:block">{c.orderCount >= 5 ? <Badge tone="ok">Regular</Badge> : c.orderCount <= 1 ? <Badge tone="brand">New</Badge> : <Badge>Returning</Badge>}</span>
           </button>
@@ -97,7 +97,7 @@ function CustomerDrawer({ customer, onClose }: { customer: WithId<Customer> | nu
         <dt className="text-muted">WhatsApp</dt><dd className="tabular text-right">{formatPhone(customer.phone)}</dd>
         {customer.address && (<><dt className="text-muted">Address</dt><dd className="text-right">{customer.address}</dd></>)}
         <dt className="text-muted">Orders</dt><dd className="tabular text-right">{customer.orderCount}</dd>
-        <dt className="text-muted">Spent</dt><dd className="tabular text-right">{cedis(customer.totalSpentMinor)}</dd>
+        <dt className="text-muted">Spent</dt><dd className="tabular text-right">{money(customer.totalSpentMinor)}</dd>
         <dt className="text-muted">First message</dt><dd className="text-right">{shortWhen(customer.createdAt)}</dd>
       </dl>
       {canWrite && <div className="mt-4"><Textarea label="Private note" placeholder="Only your team sees this" value={value} onChange={(e) => setNote(e.target.value)} /></div>}
@@ -108,7 +108,7 @@ function CustomerDrawer({ customer, onClose }: { customer: WithId<Customer> | nu
           <Link key={o.id} to={`/orders?order=${o.id}`} className="grid grid-cols-[56px_1fr_auto] gap-3 border-t border-line px-4 py-2.5 text-sm first:border-t-0 hover:bg-raised">
             <span className="tabular font-semibold">#{o.number}</span>
             <span className="min-w-0"><span className="block truncate">{itemsText(o)}</span><span className="mt-1 flex gap-1.5"><StatusBadge order={o} /><PayBadge order={o} /></span></span>
-            <span className="tabular">{cedis(o.totalMinor)}</span>
+            <span className="tabular">{money(o.totalMinor)}</span>
           </Link>
         ))}
       </div>

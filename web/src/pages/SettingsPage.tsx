@@ -16,7 +16,7 @@ import { cancelInvite, changePlan, disconnectWhatsapp, inviteMember, removeMembe
 import type { BusinessType, Role } from '@/types';
 import { cn } from '@/utils/cn';
 import { toMessage } from '@/utils/errors';
-import { cedis, formatDate, toMinor } from '@/utils/format';
+import { money, formatDate, toMinor, currencySymbol, CURRENCIES, type Currency } from '@/utils/format';
 
 const TABS = [
   ['business', 'Business'],
@@ -75,6 +75,7 @@ function BusinessTab() {
     businessType: org.businessType,
     category: org.category,
     fee: (org.deliveryFeeMinor / 100).toFixed(2),
+    currency: org.currency ?? 'GHS',
     features: org.features,
     bot: org.bot,
   });
@@ -92,7 +93,10 @@ function BusinessTab() {
           <Select label="Category" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
             {[...new Set([f.category, ...CATEGORIES[f.businessType]])].map((c) => <option key={c}>{c}</option>)}
           </Select>
-          <Input label="Delivery fee (GH₵)" inputMode="decimal" value={f.fee} onChange={(e) => setF({ ...f, fee: e.target.value })} hint="Added to delivery orders." />
+          <Input label={`Delivery fee (${currencySymbol()})`} inputMode="decimal" value={f.fee} onChange={(e) => setF({ ...f, fee: e.target.value })} hint="Added to delivery orders." />
+          <Select label="Currency" value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value as Currency })} hint="Prices, orders and WhatsApp messages use it. Existing prices are not converted.">
+            {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </Select>
           <Input label="Business phone" inputMode="tel" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
         </div>
         <div>
@@ -121,6 +125,7 @@ function BusinessTab() {
                   businessType: f.businessType,
                   category: f.category,
                   deliveryFeeMinor: Math.max(0, toMinor(f.fee) ?? 0),
+                  currency: f.currency,
                   features: f.features,
                   bot: f.bot,
                 }),
@@ -351,7 +356,7 @@ function PlanTab() {
         {PLANS.map((p) => (
           <article key={p.id} className={cn('flex flex-col gap-2.5 rounded-2xl border bg-surface p-4', p.id === cur.id ? 'border-brand-2 shadow-[inset_0_0_0_1px_rgb(var(--c-brand2))]' : 'border-line')}>
             <h3 className="font-semibold">{p.name}</h3>
-            <p className="tabular text-2xl font-semibold">{cedis(p.priceMinor).replace('.00', '')}<span className="text-sm font-medium text-muted"> / month</span></p>
+            <p className="tabular text-2xl font-semibold">{money(p.priceMinor, 'GHS').replace('.00', '')}<span className="text-sm font-medium text-muted"> / month</span></p>
             <ul className="space-y-1.5 text-[13.5px]">{p.features.map((ft) => <li key={ft} className="flex gap-2"><Icon name="check" className="mt-0.5 h-4 w-4 text-ok" />{ft}</li>)}</ul>
             <div className="mt-auto pt-2">
               {p.id === cur.id ? (

@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrg, usePermission } from '@/hooks/usePermission';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { cn } from '@/utils/cn';
-import { cedis, formatDate, startOfToday } from '@/utils/format';
+import { money, formatDate, startOfToday } from '@/utils/format';
 
 interface Need {
   icon: IconName;
@@ -91,9 +91,9 @@ export function TodayPage() {
 
       <dl className="mb-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-line bg-surface sm:grid-cols-4">
         {[
-          canPay ? ['Taken today', cedis(live.takenTodayMinor), `${paid.length} paid`] : null,
+          canPay ? ['Taken today', money(live.takenTodayMinor), `${paid.length} paid`] : null,
           [`${words.order[0].toUpperCase()}${words.order.slice(1)}s`, String(today.length), `${open.length} still open`],
-          canPay ? ['Average', cedis(paid.length ? Math.round(live.takenTodayMinor / paid.length) : 0), 'per paid order'] : null,
+          canPay ? ['Average', money(paid.length ? Math.round(live.takenTodayMinor / paid.length) : 0), 'per paid order'] : null,
           ['To check', String(live.paymentsToCheck + live.openDrafts), 'payments and typed orders'],
         ]
           .filter((x): x is string[] => Boolean(x))
