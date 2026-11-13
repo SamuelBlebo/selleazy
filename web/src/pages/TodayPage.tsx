@@ -68,7 +68,7 @@ export function TodayPage() {
     needs.push({ icon: 'alert', tone: item.stock === 0 ? 'danger' : 'accent', title: item.stock === 0 ? `${item.name} is sold out` : `${item.name} is running low (${item.stock} left)`, detail: item.stock === 0 ? 'Customers cannot order it on WhatsApp.' : 'Restock it or switch it off.', to: '/catalog', cta: 'Open' });
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader title={`${greet}, ${profile?.fullName.split(' ')[0] ?? ''}`} description={`Here's ${org.name} today.`} />
 
       {setupLeft.length > 0 && (
@@ -98,10 +98,10 @@ export function TodayPage() {
         ]
           .filter((x): x is string[] => Boolean(x))
           .map(([label, value, hint], i) => (
-            <div key={label} className={cn('border-line px-5 py-4', i % 2 === 1 && 'border-l', i >= 2 && 'border-t sm:border-t-0', i > 0 && 'sm:border-l')}>
+            <div key={label} className={cn('border-line px-4 py-3 md:px-5 md:py-4', i % 2 === 1 && 'border-l', i >= 2 && 'border-t sm:border-t-0', i > 0 && 'sm:border-l')}>
               <dt className="cap text-muted">{label}</dt>
               <dd className="tabular mt-1.5 text-xl font-semibold">{value}</dd>
-              <p className="text-xs text-muted">{hint}</p>
+              <p className="text-xs text-muted max-md:hidden">{hint}</p>
             </div>
           ))}
       </dl>
@@ -118,7 +118,7 @@ export function TodayPage() {
               </span>
               <div>
                 <p className="font-semibold">{n.title}</p>
-                <p className="text-sm text-muted">{n.detail}</p>
+                <p className="text-sm text-muted max-md:hidden">{n.detail}</p>
               </div>
               <Link to={n.to} className="col-start-2 inline-flex h-8 w-fit items-center rounded-full border border-line2 px-3 text-[13px] font-semibold hover:bg-raised sm:col-start-3">
                 {n.cta}

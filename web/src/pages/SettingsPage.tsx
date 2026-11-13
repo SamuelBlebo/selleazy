@@ -33,7 +33,7 @@ export function SettingsPage() {
   if (!TABS.some(([id]) => id === tab)) return <Navigate to="/settings" replace />;
   const Body = { business: BusinessTab, faqs: FaqTab, whatsapp: WhatsAppTab, momo: MomoTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader title="Settings" />
       <div className="grid items-start gap-6 md:grid-cols-[190px_minmax(0,1fr)]">
         <nav aria-label="Settings" className="flex gap-1 overflow-x-auto [scrollbar-width:none] md:sticky md:top-0 md:flex-col">

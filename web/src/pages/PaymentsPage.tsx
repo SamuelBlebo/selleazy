@@ -27,7 +27,7 @@ export function PaymentsPage() {
   const count = (s: Tab) => all.filter((p) => p.status === s).length;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader title="MoMo checks" description="Match each Transaction ID and amount with the MoMo SMS on your phone before you confirm." />
       <div className="mb-4">
         <Segmented value={tab} onChange={setTab} options={[{ value: 'submitted', label: 'To check', count: count('submitted') }, { value: 'verified', label: 'Verified', count: count('verified') }, { value: 'rejected', label: 'Rejected', count: count('rejected') }]} />

@@ -62,7 +62,7 @@ export function OrdersPage() {
   if (needle) rows = rows.filter((o) => `${o.number} ${o.customerName} ${o.customerPhone}`.toLowerCase().includes(needle));
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader
         title={isServices ? 'Bookings' : 'Orders'}
         description="Everything from WhatsApp and the counter, newest first. Tap one to move it along."

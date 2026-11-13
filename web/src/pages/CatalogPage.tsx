@@ -38,7 +38,7 @@ export function CatalogPage() {
   const atLimit = plan.itemLimit !== null && live.items.length >= plan.itemLimit;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader
         title={words.catalog}
         description={`${live.items.length} ${live.items.length === 1 ? 'item' : 'items'}. What's switched on shows in your WhatsApp ${words.catalog.toLowerCase()}.`}

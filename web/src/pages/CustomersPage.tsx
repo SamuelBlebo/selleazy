@@ -28,7 +28,7 @@ export function CustomersPage() {
   const selected = params.get('c');
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 lg:px-8">
+    <div className="mx-auto max-w-6xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader
         title="Customers"
         description={`Everyone who has messaged ${org.name}. Customers never need an account.`}

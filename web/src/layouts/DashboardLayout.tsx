@@ -1,5 +1,4 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Fragment } from 'react';
 import { Mark, Wordmark } from '@/components/layout/Logo';
 import { Count, Icon, type IconName } from '@/components/ui';
 import { can, ROLE_LABEL, type Permission } from '@/config/permissions';
@@ -9,7 +8,7 @@ import { LiveProvider, useLive } from '@/context/LiveContext';
 import { useAuth } from '@/hooks/useAuth';
 import { signOutUser } from '@/services';
 import { cn } from '@/utils/cn';
-import { money, initials, setMoneyCurrency } from '@/utils/format';
+import { initials, setMoneyCurrency } from '@/utils/format';
 
 interface NavItem {
   to: string;
@@ -37,43 +36,6 @@ function useNav(): { items: NavItem[]; tabs: NavItem[] } {
   return { items, tabs };
 }
 
-/** One quiet line with today's numbers, above every page. */
-function TodayBar({ className }: { className?: string }) {
-  const { org, profile } = useAuth();
-  const live = useLive();
-  const words = vocabulary(org!.businessType, org!.category);
-  const open = live.todayOrders.filter((o) => o.status !== 'cancelled');
-  const date = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  const showMoney = can(profile?.role, 'payments.verify');
-  const parts: Array<{ to?: string; strong?: string; text: string }> = [
-    { text: date },
-    { to: '/orders', strong: String(open.length), text: `${words.order}s today` },
-    ...(showMoney ? [{ strong: money(live.takenTodayMinor), text: 'taken' }, { to: '/payments', strong: String(live.paymentsToCheck), text: 'MoMo to check' }] : []),
-    ...(can(profile?.role, 'inbox.reply') ? [{ to: '/chats', strong: String(live.needsReply), text: 'waiting for you' }] : []),
-    ...(live.lowStock.length ? [{ to: '/catalog', strong: String(live.lowStock.length), text: 'low stock' }] : []),
-  ];
-  return (
-    <div className={cn('shrink-0 overflow-x-auto border-b border-line bg-surface [scrollbar-width:none]', className)} role="region" aria-label="Today at a glance">
-      <div className="flex h-11 items-center gap-3 whitespace-nowrap px-4 text-[13px] text-muted lg:px-8">
-        {parts.map((p, i) => {
-          const inner = (
-            <>
-              {p.strong && <span className="tabular font-semibold text-ink">{p.strong} </span>}
-              {p.text}
-            </>
-          );
-          return (
-            <Fragment key={i}>
-              {i > 0 && <span className="text-line2" aria-hidden>·</span>}
-              {p.to ? <NavLink to={p.to} className="hover:text-ink">{inner}</NavLink> : <span>{inner}</span>}
-            </Fragment>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function Shell() {
   const { org, profile, user } = useAuth();
   const { items, tabs } = useNav();
@@ -82,6 +44,8 @@ function Shell() {
   const inTabs = tabs.some((t) => location.pathname.startsWith(t.to));
   // An open conversation takes the whole phone screen, like WhatsApp.
   const fullScreen = /^\/chats\/[^/]+/.test(location.pathname) ? 'max-md:hidden' : '';
+  // On phones the brand bar shows only on Today; other pages lead with their own title.
+  const brandBar = location.pathname === '/today' ? '' : 'max-lg:hidden';
 
   return (
     <div className="grid h-dvh grid-cols-1 overflow-hidden lg:grid-cols-[232px_minmax(0,1fr)]">
@@ -127,14 +91,13 @@ function Shell() {
       </nav>
 
       <div className="flex h-dvh min-w-0 flex-col">
-        <header className={cn('flex shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5 lg:hidden', fullScreen)}>
+        <header className={cn('flex shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5 lg:hidden', brandBar)}>
           <NavLink to="/today" className="flex items-center gap-2">
             <Mark size={24} />
             <Wordmark />
           </NavLink>
           <span className="truncate text-sm text-muted">{org!.name}</span>
         </header>
-        <TodayBar className={fullScreen} />
         {org!.suspended && (
           <div className="bg-danger px-4 py-2 text-center text-sm font-semibold text-white">
             Your business is suspended{org!.suspendedReason ? `: ${org!.suspendedReason}` : '.'} WhatsApp orders are paused. Contact SellEazy support.
