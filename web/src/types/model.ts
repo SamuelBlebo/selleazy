@@ -107,6 +107,7 @@ export interface CatalogItem {
   lowStockAt: number;
   durationMinutes: number | null;
   requiresBooking: boolean;
+  featured?: boolean;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 }

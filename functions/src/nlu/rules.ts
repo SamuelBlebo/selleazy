@@ -23,6 +23,10 @@ const STATUS_HINTS = ['where is my', 'where my', 'reach', 'status', 'coming', 'i
 const MENU_HINTS = ['menu', 'what do you have', 'price list', 'prices', 'wetin you get', 'catalog', 'catalogue', 'what do you sell', 'services', 'options'];
 const AVAIL_HINTS = ['do you have', 'you get', 'available', 'still have', 'in stock', 'any '];
 const HUMAN_HINTS = ['speak to', 'talk to', 'call me', 'customer service', 'a person', 'human', 'manager', 'complain'];
+const PRICE_HINTS = ['how much', 'hw much', 'price', 'cost', 'charge for'];
+const DELIVERY_HINTS = ['do you deliver', 'you deliver', 'u deliver', 'delivery fee', 'delivery charge', 'delivery cost', 'delivery price', 'is delivery', 'for delivery', 'can you deliver', 'can you bring'];
+const PAYMENT_HINTS = ['how do i pay', 'how can i pay', 'how to pay', 'how i go pay', 'payment method', 'momo number', 'account number', 'pay with', 'do you take', 'do you accept', 'can i pay'];
+const LOCATION_HINTS = ['where are you', 'where are u', 'where is your shop', 'where is the shop', 'where you dey', 'your location', 'located', 'location', 'address', 'directions', 'where can i find'];
 const GREETINGS = ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'akwaaba', 'how are you'];
 
 export class RulesEngine implements NluEngine {
@@ -31,6 +35,12 @@ export class RulesEngine implements NluEngine {
     if (!lower) return { kind: 'UNKNOWN', confidence: 0 };
 
     if (HUMAN_HINTS.some((h) => lower.includes(h))) return { kind: 'HUMAN', confidence: 0.85 };
+    if (DELIVERY_HINTS.some((h) => lower.includes(h))) return { kind: 'FAQ', topic: 'delivery', confidence: 0.85 };
+    if (PAYMENT_HINTS.some((h) => lower.includes(h))) return { kind: 'FAQ', topic: 'payment', confidence: 0.85 };
+    if (PRICE_HINTS.some((h) => lower.includes(h))) {
+      const ids = catalog.filter((c) => nameVariants(c).some((v) => lower.includes(v))).map((c) => c.id);
+      return { kind: 'PRICE', itemIds: ids, confidence: 0.85 };
+    }
     if (MENU_HINTS.some((h) => lower.includes(h))) return { kind: 'MENU', confidence: 0.9 };
 
     if (STATUS_HINTS.some((h) => lower.includes(h))) {
@@ -45,6 +55,8 @@ export class RulesEngine implements NluEngine {
 
     const order = extractOrder(lower, catalog);
     if (order.lines.length) return order;
+
+    if (LOCATION_HINTS.some((h) => lower.includes(h))) return { kind: 'FAQ', topic: 'location', confidence: 0.8 };
 
     if (GREETINGS.some((g) => lower.startsWith(g)) && lower.length < 40) return { kind: 'GREETING', confidence: 0.8 };
     return { kind: 'UNKNOWN', confidence: 0.2 };

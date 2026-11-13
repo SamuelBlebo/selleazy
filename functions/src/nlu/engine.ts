@@ -17,6 +17,8 @@ export type ParsedIntent =
   | { kind: 'ORDER'; lines: ParsedLine[]; unmatched: string[]; confidence: number }
   | { kind: 'ORDER_STATUS'; orderNumber: number | null; confidence: number }
   | { kind: 'AVAILABILITY'; itemIds: string[]; confidence: number }
+  | { kind: 'PRICE'; itemIds: string[]; confidence: number }
+  | { kind: 'FAQ'; topic: 'location' | 'delivery' | 'payment'; confidence: number }
   | { kind: 'MENU'; confidence: number }
   | { kind: 'GREETING'; confidence: number }
   | { kind: 'HUMAN'; confidence: number }

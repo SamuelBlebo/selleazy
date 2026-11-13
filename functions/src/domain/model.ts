@@ -101,6 +101,8 @@ export interface CatalogItem {
   /** Services only. */
   durationMinutes: number | null;
   requiresBooking: boolean;
+  /** Shown first when a customer says hi. Missing on older items = false. */
+  featured?: boolean;
 }
 
 export interface WhatsappCredentials {

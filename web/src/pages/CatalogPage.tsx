@@ -74,7 +74,7 @@ export function CatalogPage() {
                 {i.imageUrl ? <img src={i.imageUrl} alt="" className="h-full w-full object-cover" /> : <Icon name={i.kind === 'service' ? 'scissors' : 'image'} />}
               </span>
               <span className="min-w-0">
-                <span className="block truncate font-semibold">{i.name}</span>
+                <span className="block truncate font-semibold">{i.featured && <span className="text-accent" aria-label="Featured">★ </span>}{i.name}</span>
                 <span className="block truncate text-[13px] text-muted">{i.aliases.length ? `Also: ${i.aliases.join(', ')}` : i.category}</span>
               </span>
               <span className="hidden text-muted sm:block">{i.category}</span>
@@ -132,6 +132,7 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
     duration: item?.durationMinutes ? String(splitDuration(item.durationMinutes).amount) : '',
     durationUnit: (item?.durationMinutes ? splitDuration(item.durationMinutes).unit : 'minutes') as DurationUnit,
     requiresBooking: item?.requiresBooking ?? true,
+    featured: item?.featured ?? false,
     active: item?.active ?? true,
   });
   const [photo, setPhoto] = useState<File | null>(null);
@@ -162,6 +163,7 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
       lowStockAt: Math.max(0, parseInt(f.lowStockAt, 10) || 0),
       durationMinutes: f.kind === 'service' && f.duration ? Math.max(5, (parseInt(f.duration, 10) || 0) * (DURATION_UNITS.find((u) => u.value === f.durationUnit)?.minutes ?? 1)) : null,
       requiresBooking: f.kind === 'service' && f.requiresBooking,
+      featured: f.featured,
     };
     setBusy(true);
     try {
@@ -244,6 +246,10 @@ function ItemDrawer({ open, item, onClose }: { open: boolean; item: WithId<Catal
             </label>
           </div>
         )}
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-sm"><b>Featured</b><span className="block text-muted">One of the top 5 customers see when they say hi.</span></span>
+          <Switch checked={f.featured} label="Featured" onChange={(v) => setF({ ...f, featured: v })} />
+        </label>
         <Input label="Other names customers use" value={f.aliases} onChange={(e) => setF({ ...f, aliases: e.target.value })} placeholder="e.g. braids, knotless" hint="Helps SellEazy read typed orders like “2 braids abeg”." />
         <Textarea label="Description (optional)" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
         <label className="block">

@@ -64,7 +64,7 @@ const A = {
 } as const;
 
 const PAGE = 9;
-/** After "Chat with us" the bot stays quiet this long, so staff can talk without it butting in. */
+/** After "Need help" the bot stays quiet this long, so staff can talk without it butting in. */
 const HUMAN_QUIET_MS = 4 * 60 * 60000;
 const GREETINGS = ['hi', 'hello', 'hey', 'start', 'good morning', 'good afternoon', 'good evening', 'akwaaba'];
 const CATALOG_WORDS = ['menu', 'shop', 'catalog', 'catalogue', 'products', 'items', 'services', 'price list', 'prices'];
@@ -72,6 +72,7 @@ const CATALOG_WORDS = ['menu', 'shop', 'catalog', 'catalogue', 'products', 'item
 interface Org {
   name: string;
   area: string | null;
+  phone: string | null;
   businessType: BusinessType;
   features: OrgFeatures;
   deliveryFeeMinor: number;
@@ -124,6 +125,7 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
   const org: Org = {
     name: (o.name as string) ?? 'our shop',
     area: (o.area as string) ?? null,
+    phone: (o.phone as string) ?? null,
     businessType: (o.businessType as BusinessType) ?? 'retail',
     features: (o.features as OrgFeatures) ?? { kitchen: false, bookings: false, delivery: true, pickup: true, onSite: false },
     deliveryFeeMinor: (o.deliveryFeeMinor as number) ?? 0,
@@ -238,20 +240,30 @@ async function getItem(ctx: Ctx, id: string): Promise<Item | null> {
 
 const priceLine = (i: Item, currency: Currency) => `${formatMoney(i.priceMinor, currency)}${i.kind === 'service' && i.durationMinutes ? ` · ${formatDuration(i.durationMinutes)}` : ''}`;
 
+const TOP_PICKS = 5;
+/** WhatsApp can deliver back-to-back messages out of order; a short gap keeps them in sequence. */
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 /**
- * Reply to "hi": the greeting with a look at what's on offer (photo cards, or
- * a short price list if there are no photos), then a choice between shopping
- * and talking to a person.
+ * Reply to "hi", in this order: the greeting, the top 5 items (featured
+ * first; photo cards where there are photos), then "Explore more" or
+ * "Need help".
  */
 async function greet(ctx: Ctx): Promise<Partial<Session>> {
   const items = await activeItems(ctx.orgId);
   if (!items.length) return showCatalog(ctx, ctx.org.greeting, 0);
-  const shown = items.slice(0, PAGE);
-  const shownPhotos = await showPhotos(ctx, shown, ctx.org.greeting);
-  const preview = shown.map((it, i) => `${i + 1}. ${it.name} — ${priceLine(it, ctx.org.currency)}`).join('\n') + (items.length > PAGE ? `\n…and ${items.length - PAGE} more` : '');
+  const top = [...items.filter((i) => i.featured), ...items.filter((i) => !i.featured)].slice(0, TOP_PICKS);
+
+  await ctx.out.text(ctx.org.greeting);
+  await pause(1200);
+  const shownPhotos = await showPhotos(ctx, top, 'Our top picks:');
+  if (shownPhotos) await pause(2000);
+
+  const listed = shownPhotos ? top.filter((i) => !i.imageUrl) : top;
+  const preview = listed.map((i) => `• ${i.name} — ${priceLine(i, ctx.org.currency)}`).join('\n');
   await ctx.out.buttons({
-    body: [shownPhotos ? null : ctx.org.greeting, shownPhotos ? null : preview, 'Would you like to shop now, or chat with someone?'].filter(Boolean).join('\n\n'),
-    buttons: [{ id: A.shop, title: 'Shop now' }, { id: A.human, title: 'Chat with us' }],
+    body: [preview ? `${shownPhotos ? 'Also' : 'Our top picks'}:\n${preview}` : null, `Want to see everything, or need help?`].filter(Boolean).join('\n\n'),
+    buttons: [{ id: A.shop, title: 'Explore more' }, { id: A.human, title: 'Need help' }],
   });
   return { step: 'browsing', catalogIds: items.map((i) => i.id), catalogPage: 0 };
 }
@@ -558,7 +570,6 @@ async function maybeCapturePayment(ctx: Ctx, text: string): Promise<boolean> {
 /* ------------------------------- Free text -------------------------------- */
 
 async function readFreeText(ctx: Ctx, text: string): Promise<Partial<Session>> {
-  if (!ctx.org.freeText) return handoff(ctx);
   const items = await activeItems(ctx.orgId);
   const catalog: NluCatalogItem[] = items.map((i) => ({ id: i.id, name: i.name, aliases: i.aliases ?? [], kind: i.kind }));
   const intent = await nlu.parse({ text, catalog });
@@ -575,12 +586,62 @@ async function readFreeText(ctx: Ctx, text: string): Promise<Partial<Session>> {
       await ctx.out.text(found.map((i) => `Yes, ${i.name} is available: ${priceLine(i, ctx.org.currency)}.`).join('\n') + '\nReply "menu" to order.');
       return {};
     }
+    case 'PRICE':
+      return replyPrices(ctx, items, intent.itemIds);
+    case 'FAQ':
+      return replyFaq(ctx, intent.topic);
     case 'ORDER':
+      if (!ctx.org.freeText) return handoff(ctx);
       if (intent.confidence >= DRAFT_THRESHOLD) return createDraft(ctx, text, intent.lines, intent.unmatched, intent.confidence, items);
       return handoff(ctx);
     default:
       return handoff(ctx);
   }
+}
+
+const exploreOrHelp = [{ id: A.shop, title: 'Explore more' }, { id: A.human, title: 'Need help' }];
+
+/** "How much is jollof?" → that price; "What are your prices?" → the price list. */
+async function replyPrices(ctx: Ctx, items: Item[], itemIds: string[]): Promise<Partial<Session>> {
+  const asked = items.filter((i) => itemIds.includes(i.id));
+  const shown = (asked.length ? asked : items).slice(0, 20);
+  const more = asked.length ? 0 : items.length - shown.length;
+  await ctx.out.buttons({
+    body: [
+      asked.length ? null : 'Here are our prices:',
+      shown.map((i) => `• ${i.name} — ${priceLine(i, ctx.org.currency)}`).join('\n') + (more > 0 ? `\n…and ${more} more` : ''),
+      'Tap Explore more to order.',
+    ].filter(Boolean).join('\n\n'),
+    buttons: exploreOrHelp,
+  });
+  return { step: 'browsing', catalogIds: items.map((i) => i.id), catalogPage: 0 };
+}
+
+/** Common questions answered from the business's settings. Anything we can't answer goes to a person. */
+async function replyFaq(ctx: Ctx, topic: 'location' | 'delivery' | 'payment'): Promise<Partial<Session>> {
+  const { org } = ctx;
+  let answer: string | null = null;
+  if (topic === 'location' && org.area) {
+    answer = `We're in ${org.area}.${org.phone ? ` Call ${org.phone} if you need directions.` : ''}`;
+  } else if (topic === 'delivery') {
+    const fee = org.deliveryFeeMinor ? ` The delivery fee is ${formatMoney(org.deliveryFeeMinor, org.currency)}.` : '';
+    answer = org.features.delivery
+      ? `Yes, we deliver.${fee} Add your address when you check out.${org.features.pickup ? ' You can also pick up.' : ''}`
+      : `Sorry, we don't deliver right now.${org.features.pickup ? ` You can pick up${org.area ? ` in ${org.area}` : ''}.` : ''}`;
+  } else if (topic === 'payment') {
+    const momo = org.momo ?? {};
+    const lines = [
+      momo.mtn ? `MTN MoMo: ${momo.mtn}` : null,
+      momo.telecel ? `Telecel Cash: ${momo.telecel}` : null,
+      momo.airteltigo ? `AirtelTigo Money: ${momo.airteltigo}` : null,
+    ].filter(Boolean);
+    answer = lines.length
+      ? ['We take mobile money:', ...lines, momo.accountName ? `Name: ${momo.accountName}` : null, '', 'Place your order first and we will send you the total.'].filter((l) => l !== null).join('\n')
+      : 'We will tell you how to pay when you place your order.';
+  }
+  if (!answer) return handoff(ctx);
+  await ctx.out.buttons({ body: answer, buttons: exploreOrHelp });
+  return {};
 }
 
 async function createDraft(

@@ -87,3 +87,15 @@ test('roles', () => {
   assert.ok(!can('kitchen', 'orders.manage'));
   assert.ok(!can('manager', 'billing.manage'));
 });
+
+test('price and FAQ questions', async () => {
+  const all = await engine.parse({ text: 'What are your prices?', catalog: food });
+  assert.deepEqual([all.kind, all.itemIds], ['PRICE', []]);
+  const one = await engine.parse({ text: 'how much is jollof', catalog: food });
+  assert.deepEqual([one.kind, one.itemIds], ['PRICE', ['p1']]);
+  assert.equal((await engine.parse({ text: 'Do you deliver to Tema?', catalog: food })).topic, 'delivery');
+  assert.equal((await engine.parse({ text: 'how much is delivery', catalog: food })).topic, 'delivery');
+  assert.equal((await engine.parse({ text: 'How do I pay?', catalog: food })).topic, 'payment');
+  assert.equal((await engine.parse({ text: 'where are you located', catalog: food })).topic, 'location');
+  assert.equal((await engine.parse({ text: 'where is my order', catalog: food })).kind, 'ORDER_STATUS');
+});
