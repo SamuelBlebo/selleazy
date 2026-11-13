@@ -155,7 +155,7 @@ export class Outbox {
       failed: !result.ok,
       createdAt: FieldValue.serverTimestamp(),
     });
-    await customerRef(this.orgId, this.waId).set({ lastMessageAt: FieldValue.serverTimestamp() }, { merge: true });
+    await customerRef(this.orgId, this.waId).set({ lastMessageAt: FieldValue.serverTimestamp(), lastMessageText: body.slice(0, 120), lastMessageOut: true }, { merge: true });
     return result;
   }
 }

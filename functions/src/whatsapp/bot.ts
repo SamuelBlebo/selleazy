@@ -116,6 +116,8 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
       phone: `+${waId}`,
       waProfileName: profileName || null,
       lastMessageAt: now,
+      lastMessageText: (body ?? `(${message.type})`).slice(0, 120),
+      lastMessageOut: false,
       unreadCount: FieldValue.increment(1),
       updatedAt: now,
       ...(custSnap.exists

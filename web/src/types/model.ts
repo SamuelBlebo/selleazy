@@ -143,6 +143,9 @@ export interface Customer {
   totalSpentMinor: number;
   lastOrderAt: Timestamp | null;
   lastMessageAt: Timestamp | null;
+  /** Preview for the chat list; missing on chats from before it was stored. */
+  lastMessageText?: string;
+  lastMessageOut?: boolean;
   unreadCount: number;
   needsHuman: boolean;
   createdAt: Timestamp;
