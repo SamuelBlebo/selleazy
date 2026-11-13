@@ -24,7 +24,7 @@ function useNav(): { items: NavItem[]; tabs: NavItem[] } {
   const words = vocabulary(org!.businessType, org!.category);
   const has = (p: Permission) => can(role, p);
   const items: NavItem[] = [];
-  if (role !== 'kitchen') items.push({ to: '/today', label: 'Today', icon: 'today' });
+  if (role !== 'kitchen') items.push({ to: '/today', label: 'Home', icon: 'today' });
   if (has('inbox.reply')) items.push({ to: '/chats', label: 'Chats', icon: 'chat', count: live.unreadChats });
   if (has('orders.manage')) items.push({ to: '/orders', label: org!.businessType === 'services' ? 'Bookings' : 'Orders', icon: org!.businessType === 'services' ? 'calendar' : 'orders', count: live.openDrafts });
   if (has('payments.verify')) items.push({ to: '/payments', label: 'MoMo checks', icon: 'wallet', count: live.paymentsToCheck });

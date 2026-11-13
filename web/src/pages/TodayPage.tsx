@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Icon, type IconName } from '@/components/ui';
+import { Icon, Segmented, type IconName } from '@/components/ui';
 import { isOpen } from '@/config/business';
 import { useLive } from '@/context/LiveContext';
 import { ordersRef } from '@/firebase';
@@ -12,6 +12,21 @@ import { useOrg, usePermission } from '@/hooks/usePermission';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { cn } from '@/utils/cn';
 import { money, formatDate, startOfToday } from '@/utils/format';
+
+type Period = 'today' | 'week' | 'month';
+const PERIODS: Array<{ value: Period; label: string }> = [
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'This week' },
+  { value: 'month', label: 'This month' },
+];
+
+/** Midnight today, Monday of this week, or the 1st of this month. */
+function periodStart(p: Period): Date {
+  const d = startOfToday();
+  if (p === 'week') d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  if (p === 'month') d.setDate(1);
+  return d;
+}
 
 interface Need {
   icon: IconName;
@@ -23,11 +38,16 @@ interface Need {
 }
 
 export function TodayPage() {
-  usePageTitle('Today');
+  usePageTitle('Home');
   const { org, role, words } = useOrg();
   const { profile } = useAuth();
   const live = useLive();
   const canPay = usePermission('payments.verify');
+  const [period, setPeriod] = useState<Period>('today');
+  // Today comes from the shell's live listener; a week or month needs its own query.
+  const longer = useCollection(
+    useMemo(() => (period === 'today' ? null : query(ordersRef(org.id), where('createdAt', '>=', Timestamp.fromDate(periodStart(period))))), [org.id, period]),
+  );
   const bookings = useCollection(
     useMemo(() => {
       const start = startOfToday();
@@ -45,7 +65,10 @@ export function TodayPage() {
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const today = live.todayOrders.filter((o) => o.status !== 'cancelled');
   const open = today.filter((o) => isOpen(o.status));
-  const paid = today.filter((o) => o.paymentState === 'paid');
+  const inPeriod = period === 'today' ? today : longer.status === 'ready' ? longer.data.filter((o) => o.status !== 'cancelled') : [];
+  const taken = inPeriod.reduce((s, o) => s + (o.paidMinor ?? 0), 0);
+  const customers = new Set(inPeriod.map((o) => o.customerId)).size;
+  const listed = live.items.filter((i) => i.active).length;
   const upcoming = (bookings.status === 'ready' ? bookings.data : []).filter((o) => isOpen(o.status)).slice(0, 8);
 
   const setup = [
@@ -89,12 +112,15 @@ export function TodayPage() {
         </section>
       )}
 
+      <div className="mb-3">
+        <Segmented value={period} onChange={setPeriod} options={PERIODS} />
+      </div>
       <dl className="mb-5 grid grid-cols-2 overflow-hidden rounded-2xl border border-line bg-surface sm:grid-cols-4">
         {[
-          canPay ? ['Taken today', money(live.takenTodayMinor), `${paid.length} paid`] : null,
-          [`${words.order[0].toUpperCase()}${words.order.slice(1)}s`, String(today.length), `${open.length} still open`],
-          canPay ? ['Average', money(paid.length ? Math.round(live.takenTodayMinor / paid.length) : 0), 'per paid order'] : null,
-          ['To check', String(live.paymentsToCheck + live.openDrafts), 'payments and typed orders'],
+          canPay ? ['Taken', money(taken), `${inPeriod.filter((o) => o.paymentState === 'paid').length} paid`] : null,
+          [`${words.order[0].toUpperCase()}${words.order.slice(1)}s`, String(inPeriod.length), period === 'today' ? `${open.length} still open` : `${inPeriod.filter((o) => isOpen(o.status)).length} still open`],
+          ['Customers', String(customers), 'ordered'],
+          [`${words.item[0].toUpperCase()}${words.item.slice(1)}s listed`, String(listed), live.lowStock.length ? `${live.lowStock.length} low on stock` : 'on WhatsApp'],
         ]
           .filter((x): x is string[] => Boolean(x))
           .map(([label, value, hint], i) => (
