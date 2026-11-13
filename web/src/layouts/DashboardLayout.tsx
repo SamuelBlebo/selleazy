@@ -38,7 +38,7 @@ function useNav(): { items: NavItem[]; tabs: NavItem[] } {
 }
 
 /** One quiet line with today's numbers, above every page. */
-function TodayBar() {
+function TodayBar({ className }: { className?: string }) {
   const { org, profile } = useAuth();
   const live = useLive();
   const words = vocabulary(org!.businessType, org!.category);
@@ -53,7 +53,7 @@ function TodayBar() {
     ...(live.lowStock.length ? [{ to: '/catalog', strong: String(live.lowStock.length), text: 'low stock' }] : []),
   ];
   return (
-    <div className="shrink-0 overflow-x-auto border-b border-line bg-surface [scrollbar-width:none]" role="region" aria-label="Today at a glance">
+    <div className={cn('shrink-0 overflow-x-auto border-b border-line bg-surface [scrollbar-width:none]', className)} role="region" aria-label="Today at a glance">
       <div className="flex h-11 items-center gap-3 whitespace-nowrap px-4 text-[13px] text-muted lg:px-8">
         {parts.map((p, i) => {
           const inner = (
@@ -80,6 +80,8 @@ function Shell() {
   const location = useLocation();
   const plan = planById(org!.subscription.plan);
   const inTabs = tabs.some((t) => location.pathname.startsWith(t.to));
+  // An open conversation takes the whole phone screen, like WhatsApp.
+  const fullScreen = /^\/chats\/[^/]+/.test(location.pathname) ? 'max-md:hidden' : '';
 
   return (
     <div className="grid h-dvh grid-cols-1 overflow-hidden lg:grid-cols-[232px_minmax(0,1fr)]">
@@ -125,14 +127,14 @@ function Shell() {
       </nav>
 
       <div className="flex h-dvh min-w-0 flex-col">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5 lg:hidden">
+        <header className={cn('flex shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2.5 lg:hidden', fullScreen)}>
           <NavLink to="/today" className="flex items-center gap-2">
             <Mark size={24} />
             <Wordmark />
           </NavLink>
           <span className="truncate text-sm text-muted">{org!.name}</span>
         </header>
-        <TodayBar />
+        <TodayBar className={fullScreen} />
         {org!.suspended && (
           <div className="bg-danger px-4 py-2 text-center text-sm font-semibold text-white">
             Your business is suspended{org!.suspendedReason ? `: ${org!.suspendedReason}` : '.'} WhatsApp orders are paused. Contact SellEazy support.
@@ -141,7 +143,7 @@ function Shell() {
         <main id="main" className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
-        <nav aria-label="Main" className="grid shrink-0 grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
+        <nav aria-label="Main" className={cn('grid shrink-0 grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden', fullScreen)}>
           {tabs.map((t) => (
             <NavLink
               key={t.to}

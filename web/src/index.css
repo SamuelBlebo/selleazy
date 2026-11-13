@@ -80,3 +80,10 @@
     @apply text-[11px] font-medium uppercase tracking-wider text-muted;
   }
 }
+
+/* iPhones zoom the page when a field under 16px gets focus; keep phone fields at 16px. */
+@media (max-width: 639px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}

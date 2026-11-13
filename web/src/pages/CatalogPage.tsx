@@ -74,7 +74,7 @@ export function CatalogPage() {
                 {i.imageUrl ? <img src={i.imageUrl} alt="" className="h-full w-full object-cover" /> : <Icon name={i.kind === 'service' ? 'scissors' : 'image'} />}
               </span>
               <span className="min-w-0">
-                <span className="block truncate font-semibold">{i.featured && <span className="text-accent" aria-label="Featured">★ </span>}{i.name}</span>
+                <span className="block font-semibold max-sm:line-clamp-2 sm:truncate">{i.featured && <span className="text-accent" aria-label="Featured">★ </span>}{i.name}</span>
                 <span className="block truncate text-[13px] text-muted">{i.aliases.length ? `Also: ${i.aliases.join(', ')}` : i.category}</span>
               </span>
               <span className="hidden text-muted sm:block">{i.category}</span>

@@ -115,6 +115,7 @@ function Thread({ waId }: { waId: string }) {
   const lastIn = messages.status === 'ready' ? messages.data.find((m) => m.direction === 'in')?.createdAt?.toMillis() : undefined;
   const windowHours = lastIn ? Math.max(0, 24 - Math.floor((Date.now() - lastIn) / 3600000)) : 0;
 
+  const box = useRef<HTMLTextAreaElement>(null);
   const send = async () => {
     const body = text.trim();
     if (!body) return;
@@ -122,6 +123,7 @@ function Thread({ waId }: { waId: string }) {
     try {
       await sendReply(waId, body);
       setText('');
+      if (box.current) box.current.style.height = '';
     } catch (e) {
       toast.error(toMessage(e));
     } finally {
@@ -139,15 +141,19 @@ function Thread({ waId }: { waId: string }) {
           <span className="grid h-[38px] w-[38px] place-items-center rounded-full bg-brand-soft text-[13px] font-bold text-brand-ink">{initials(c?.name ?? c?.waProfileName)}</span>
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">{c?.name ?? c?.waProfileName ?? formatPhone(`+${waId}`)}</p>
-            <p className="tabular text-[12.5px] text-muted">{formatPhone(`+${waId}`)}</p>
+            <p className="tabular truncate text-[12.5px] text-muted">{formatPhone(`+${waId}`)}{windowHours > 0 && <span className="md:hidden"> · {windowHours}h to reply</span>}</p>
           </div>
-          {c?.needsHuman && <Button size="sm" variant="secondary" onClick={() => void markHandled(org.id, waId)}>Mark handled</Button>}
+          {c?.needsHuman && (
+            <Button size="sm" variant="secondary" onClick={() => void markHandled(org.id, waId)} aria-label="Mark handled">
+              <Icon name="check" className="h-4 w-4" /><span className="max-sm:hidden">Mark handled</span>
+            </Button>
+          )}
           {latest && <Button size="sm" variant="secondary" className="xl:hidden" onClick={() => setOrderOpen(latest.id)}>#{latest.number}</Button>}
         </div>
-        <div ref={scroller} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-3 py-4 sm:px-[6%]">
+        <div ref={scroller} className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain px-3 py-3 sm:px-[6%] sm:py-4">
           {rows.map((r) => (r.kind === 'draft' ? <DraftCard key={r.draft.id} draft={r.draft} /> : <Bubble key={r.msg.id} m={r.msg} />))}
         </div>
-        <div className="border-t border-line bg-surface px-3.5 pb-3 pt-2.5">
+        <div className="border-t border-line bg-surface px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:px-3.5">
           <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none]">
             {QUICK.map((qr) => (
               <button key={qr} type="button" onClick={() => setText(qr)} className="shrink-0 rounded-full border border-line2 px-3 py-1.5 text-[13px] hover:bg-raised">
@@ -159,9 +165,15 @@ function Thread({ waId }: { waId: string }) {
             <label className="sr-only" htmlFor="reply">Reply</label>
             <textarea
               id="reply"
+              ref={box}
               rows={1}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value);
+                // Grow with the message, up to max-h.
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
@@ -169,13 +181,13 @@ function Thread({ waId }: { waId: string }) {
                 }
               }}
               placeholder="Type a reply"
-              className="max-h-32 min-h-[44px] flex-1 resize-none rounded-[22px] border border-line2 bg-white px-4 py-2.5 text-sm focus:border-brand focus:outline-none"
+              className="max-h-32 min-h-[44px] flex-1 resize-none rounded-[22px] border border-line2 bg-white px-4 py-2.5 text-base focus:border-brand focus:outline-none"
             />
             <button type="button" onClick={() => void send()} disabled={sending || !text.trim()} aria-label="Send reply" className="grid h-11 w-11 place-items-center rounded-full bg-ok text-white hover:bg-ok-ink disabled:opacity-50">
               <Icon name="send" />
             </button>
           </div>
-          <p className="mt-1.5 text-xs text-muted">
+          <p className={cn('mt-1.5 text-xs text-muted', windowHours > 0 && 'max-md:hidden')}>
             <Icon name="clock" className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
             {windowHours > 0 ? `Free reply window open · ${windowHours}h left.` : 'Reply window closed. Only approved templates reach this customer until they message again.'}
           </p>
