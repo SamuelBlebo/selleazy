@@ -3,7 +3,7 @@ import { NavLink, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/layout/PageHeader';
 import { WhatsAppConnectButton } from '@/components/settings/WhatsAppConnect';
 import { Badge, Button, Card, CardBody, CardHeader, Icon, Input, Select, SettingRow, Switch, Textarea } from '@/components/ui';
-import { BUSINESS_TYPES, CATEGORIES } from '@/config/business';
+import { BUSINESS_TYPES, CATEGORIES, suggestedFaqs } from '@/config/business';
 import { ROLE_LABEL, ROLE_PERMISSIONS, type Permission } from '@/config/permissions';
 import { PLANS, planById } from '@/config/plans';
 import { invitesRef, membersRef } from '@/firebase';
@@ -13,13 +13,14 @@ import { useOrg } from '@/hooks/usePermission';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/useToast';
 import { cancelInvite, changePlan, disconnectWhatsapp, inviteMember, removeMember, sendTestMessage, updateMemberRole, updateSettings } from '@/services';
-import type { BusinessType, Role } from '@/types';
+import type { BusinessType, Faq, Role } from '@/types';
 import { cn } from '@/utils/cn';
 import { toMessage } from '@/utils/errors';
 import { money, formatDate, toMinor, currencySymbol, CURRENCIES, type Currency } from '@/utils/format';
 
 const TABS = [
   ['business', 'Business'],
+  ['faqs', 'Bot answers'],
   ['whatsapp', 'WhatsApp'],
   ['momo', 'MoMo numbers'],
   ['team', 'Team & roles'],
@@ -30,7 +31,7 @@ export function SettingsPage() {
   usePageTitle('Settings');
   const { tab = 'business' } = useParams();
   if (!TABS.some(([id]) => id === tab)) return <Navigate to="/settings" replace />;
-  const Body = { business: BusinessTab, whatsapp: WhatsAppTab, momo: MomoTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
+  const Body = { business: BusinessTab, faqs: FaqTab, whatsapp: WhatsAppTab, momo: MomoTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 lg:px-8">
       <PageHeader title="Settings" />
@@ -206,6 +207,69 @@ function MomoTab() {
         <SettingRow title="Automatic verification" hint="MTN MoMo, Telecel Cash and AirtelTigo Money APIs. Coming later."><Switch checked={false} disabled label="Automatic verification" onChange={() => undefined} /></SettingRow>
         <div className="flex justify-end">
           <Button loading={busy} onClick={() => void save(() => updateSettings(org.id, { momo: { mtn: m.mtn.trim() || null, telecel: m.telecel.trim() || null, airteltigo: m.airteltigo.trim() || null, accountName: m.accountName.trim() || null } }))}>Save</Button>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+const MAX_FAQS = 30;
+
+function FaqTab() {
+  const { org } = useOrg();
+  const { busy, save } = useSaver();
+  const toEdit = (f: Faq) => ({ q: f.q, a: f.a, keywords: (f.keywords ?? []).join(', ') });
+  const [rows, setRows] = useState(() => (org.bot.faqs ?? []).map(toEdit));
+  const setRow = (i: number, patch: Partial<(typeof rows)[number]>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const have = new Set(rows.map((r) => r.q.trim().toLowerCase()));
+  const suggestions = suggestedFaqs(org.businessType, org.category).filter((f) => !have.has(f.q.toLowerCase()));
+  const clean = (): Faq[] =>
+    rows
+      .filter((r) => r.q.trim() && r.a.trim())
+      .map((r) => ({ q: r.q.trim().slice(0, 150), a: r.a.trim().slice(0, 900), keywords: r.keywords.split(',').map((k) => k.trim()).filter(Boolean).slice(0, 15) }));
+
+  return (
+    <Card>
+      <CardHeader
+        title="Questions the bot answers"
+        description="When a customer asks one of these on WhatsApp, the bot replies with your answer. Anything else goes to you."
+      />
+      <CardBody className="space-y-4">
+        {rows.length === 0 && <p className="text-sm text-muted">No questions yet. Start with the suggestions below, then change the answers to fit your business.</p>}
+        {rows.map((r, i) => (
+          <div key={i} className="space-y-2.5 rounded-xl border border-line p-3.5">
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <Input label={`Question ${i + 1}`} value={r.q} onChange={(e) => setRow(i, { q: e.target.value })} placeholder="e.g. Are you open on Sunday?" />
+              </div>
+              <button type="button" onClick={() => setRows(rows.filter((_, j) => j !== i))} aria-label={`Remove question ${i + 1}`} className="mt-7 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-raised hover:text-danger">
+                <Icon name="x" />
+              </button>
+            </div>
+            <Textarea label="Answer" rows={2} value={r.a} onChange={(e) => setRow(i, { a: e.target.value })} />
+            <Input label="Other words customers use" value={r.keywords} onChange={(e) => setRow(i, { keywords: e.target.value })} placeholder="e.g. sunday, closing time, weekend" hint="Separate with commas. Any one of these is enough to send this answer." />
+          </div>
+        ))}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" disabled={rows.length >= MAX_FAQS} onClick={() => setRows([...rows, { q: '', a: '', keywords: '' }])}>
+            <Icon name="plus" /> Add question
+          </Button>
+        </div>
+        {suggestions.length > 0 && rows.length < MAX_FAQS && (
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Suggested for your business</h3>
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((s) => (
+                <button key={s.q} type="button" onClick={() => setRows([...rows, toEdit(s)])} className="rounded-full border border-line2 px-3 py-1.5 text-left text-[13px] hover:bg-raised">
+                  + {s.q}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted">Check each answer before saving. Delivery, payment, location and prices are already answered from your other settings.</p>
+          </div>
+        )}
+        <div className="flex justify-end">
+          <Button loading={busy} onClick={() => void save(() => updateSettings(org.id, { bot: { ...org.bot, faqs: clean() } }))}>Save</Button>
         </div>
       </CardBody>
     </Card>

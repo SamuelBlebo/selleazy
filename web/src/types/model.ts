@@ -1,4 +1,11 @@
 import type { Currency } from '@/utils/format';
+
+/** A merchant's own question and answer; the WhatsApp bot replies with it (functions/src/nlu/faq.ts). */
+export interface Faq {
+  q: string;
+  a: string;
+  keywords?: string[];
+}
 import type { Timestamp } from 'firebase/firestore';
 
 /**
@@ -57,7 +64,7 @@ export interface Organization {
   deliveryFeeMinor: number;
   features: OrgFeatures;
   ownerUid: string;
-  bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string };
+  bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[] };
   momo: { mtn: string | null; telecel: string | null; airteltigo: string | null; accountName: string | null };
   subscription: Subscription;
   whatsapp: WhatsAppMirror;

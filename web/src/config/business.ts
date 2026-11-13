@@ -1,4 +1,4 @@
-import type { BusinessType, Fulfilment, MovementReason, Order, OrderStatus, OrgFeatures } from '@/types';
+import type { BusinessType, Faq, Fulfilment, MovementReason, Order, OrderStatus, OrgFeatures } from '@/types';
 
 /**
  * Everything that changes with what a merchant sells. One order flow for all
@@ -129,3 +129,62 @@ export const MOVEMENT_LABEL: Record<MovementReason, string> = {
   correction: 'Count correction',
   return: 'Customer return',
 };
+
+/**
+ * Starter questions a merchant can add with one tap, then edit. Answers are
+ * examples to change, not facts about the business. Delivery, payment,
+ * location and prices are already answered from Settings.
+ */
+const FAQ_COMMON: Faq[] = [
+  { q: 'What time do you open?', a: 'We are open Monday to Saturday, 8am to 7pm.', keywords: ['closing time', 'close', 'hours', 'sunday', 'weekend', 'today'] },
+];
+
+const FAQ_BY_TYPE: Record<BusinessType, Faq[]> = {
+  retail: [
+    { q: 'Can I return or exchange an item?', a: 'Yes, within 3 days with the receipt, if the item is unused.', keywords: ['refund', 'exchange', 'return'] },
+    { q: 'Do you have other sizes or colours?', a: 'Tell us the item and the size or colour you want, and we will check for you.', keywords: ['size', 'colour', 'color'] },
+    { q: 'Is it original?', a: 'Yes, everything we sell is original.', keywords: ['original', 'fake', 'genuine', 'quality'] },
+  ],
+  services: [
+    { q: 'How do I book?', a: 'Tap "Explore more", choose a service and tell us the day and time you want. We will confirm it here.', keywords: ['appointment', 'book', 'booking', 'schedule'] },
+    { q: 'Can I cancel or reschedule?', a: 'Yes. Message us at least 24 hours before your appointment.', keywords: ['cancel', 'reschedule', 'change my time', 'postpone'] },
+    { q: 'Do you do home service?', a: 'Yes, we can come to you for an extra fee. Tell us your area.', keywords: ['home service', 'come to my house', 'come to me'] },
+  ],
+  food: [
+    { q: 'Do you cater for events?', a: 'Yes! Tell us the date, number of people and what you would like, and we will send a price.', keywords: ['catering', 'party', 'event', 'wedding', 'funeral', 'bulk'] },
+    { q: 'How long does an order take?', a: 'Usually 30 to 45 minutes, plus delivery time.', keywords: ['how long', 'wait', 'ready'] },
+    { q: 'Is it spicy?', a: 'You can ask for mild or extra spicy when you order.', keywords: ['pepper', 'spicy', 'hot'] },
+  ],
+  mixed: [
+    { q: 'How do I book?', a: 'Tap "Explore more", choose a service and tell us the day and time you want. We will confirm it here.', keywords: ['appointment', 'book', 'booking'] },
+    { q: 'Can I return or exchange an item?', a: 'Yes, within 3 days with the receipt, if the item is unused.', keywords: ['refund', 'exchange', 'return'] },
+  ],
+};
+
+const FAQ_BY_CATEGORY: Record<string, Faq[]> = {
+  'Salon & barbering': [
+    { q: 'Do I need to bring my own hair?', a: 'You can bring your own, or we can provide it for an extra cost.', keywords: ['attachment', 'extensions', 'braiding hair', 'wig'] },
+    { q: 'How long does it take?', a: 'It depends on the style. Most take 2 to 5 hours. Ask us about a specific style.', keywords: ['how long', 'hours', 'duration'] },
+  ],
+  'Salon & beauty': [
+    { q: 'Do I need to bring my own hair?', a: 'You can bring your own, or we can provide it for an extra cost.', keywords: ['attachment', 'extensions', 'braiding hair', 'wig'] },
+  ],
+  Tailoring: [
+    { q: 'How long does sewing take?', a: 'Usually 5 to 7 days. Rush orders cost extra.', keywords: ['how long', 'ready', 'rush', 'urgent'] },
+    { q: 'Do you need my measurements?', a: 'Yes. Come in to be measured, or send your measurements here.', keywords: ['measurement', 'measure', 'size'] },
+  ],
+  Repairs: [
+    { q: 'Do you give a warranty?', a: 'Yes, 30 days on parts and labour.', keywords: ['warranty', 'guarantee'] },
+    { q: 'How long does a repair take?', a: 'Most repairs are done the same day. We will tell you after checking.', keywords: ['how long', 'ready', 'same day'] },
+  ],
+  'Phones & repairs': [
+    { q: 'Do you give a warranty?', a: 'Yes, 30 days on parts and labour.', keywords: ['warranty', 'guarantee'] },
+  ],
+  Pharmacy: [
+    { q: 'Do I need a prescription?', a: 'Some medicines need a prescription. Send us a photo of it here.', keywords: ['prescription', 'doctor'] },
+  ],
+};
+
+export function suggestedFaqs(type: BusinessType, category?: string | null): Faq[] {
+  return [...FAQ_COMMON, ...(FAQ_BY_TYPE[type] ?? []), ...((category && FAQ_BY_CATEGORY[category]) || [])];
+}

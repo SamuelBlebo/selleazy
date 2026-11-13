@@ -3,6 +3,7 @@ import { logger } from 'firebase-functions/v2';
 import type { BusinessType, CatalogItem, Fulfilment, ItemKind, OrgFeatures, WhatsappAccount } from '../domain/model';
 import { formatMoney, parseAmount, type Currency } from '../domain/money';
 import { DRAFT_THRESHOLD, nlu, readWhen, type NluCatalogItem } from '../nlu';
+import { matchFaq, type Faq } from '../nlu/faq';
 import { guessNetwork } from '../payments/providers';
 import { placeOrder } from '../services/orders';
 import { submitPayment } from '../services/payments';
@@ -82,6 +83,7 @@ interface Org {
   greeting: string;
   menuBot: boolean;
   freeText: boolean;
+  faqs: Faq[];
   momo: Record<string, string | null> | undefined;
   suspended: boolean;
 }
@@ -136,6 +138,7 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
     greeting: (o.bot?.greeting as string) ?? `Welcome to ${(o.name as string) ?? 'our shop'}!`,
     menuBot: o.bot?.menuEnabled !== false,
     freeText: o.bot?.freeTextEnabled !== false,
+    faqs: Array.isArray(o.bot?.faqs) ? (o.bot.faqs as Faq[]) : [],
     momo: o.momo as Org['momo'],
     suspended: o.suspended === true,
   };
@@ -578,6 +581,15 @@ async function readFreeText(ctx: Ctx, text: string): Promise<Partial<Session>> {
   const items = await activeItems(ctx.orgId);
   const catalog: NluCatalogItem[] = items.map((i) => ({ id: i.id, name: i.name, aliases: i.aliases ?? [], kind: i.kind }));
   const intent = await nlu.parse({ text, catalog });
+
+  // The merchant's own answers come before the bot's built-in ones; orders and order status don't.
+  if (intent.kind !== 'ORDER' && intent.kind !== 'ORDER_STATUS') {
+    const faq = matchFaq(text, ctx.org.faqs);
+    if (faq) {
+      await ctx.out.buttons({ body: faq.a, buttons: exploreOrHelp(ctx) });
+      return {};
+    }
+  }
 
   switch (intent.kind) {
     case 'MENU':

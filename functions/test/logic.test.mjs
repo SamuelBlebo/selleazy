@@ -112,3 +112,22 @@ test('wording fits each business, and WhatsApp buttons stay within 20 characters
     for (const k of ['button', 'explore', 'pick', 'book']) assert.ok(w[k].length <= 20, `${t}/${c} ${k}: ${w[k]}`);
   }
 });
+
+test('merchant FAQs match different wordings, and nothing unrelated', () => {
+  const { matchFaq } = require('../lib/nlu/faq.js');
+  const faqs = [
+    { q: 'What time do you open?', a: 'HOURS', keywords: ['closing time', 'sunday', 'hours'] },
+    { q: 'Do I need to bring my own hair?', a: 'HAIR', keywords: ['attachment', 'extensions'] },
+    { q: 'Do you do home service?', a: 'HOME', keywords: ['come to my house'] },
+  ];
+  const a = (t) => matchFaq(t, faqs)?.a ?? null;
+  assert.equal(a('when do u open'), 'HOURS');
+  assert.equal(a('Are you open on Sunday?'), 'HOURS');
+  assert.equal(a("what's your closing time"), 'HOURS');
+  assert.equal(a('should I bring my own hair or you provide?'), 'HAIR');
+  assert.equal(a('do you sell attachment'), 'HAIR');
+  assert.equal(a('can you come to my house'), 'HOME');
+  assert.equal(a('do you do home service'), 'HOME');
+  assert.equal(a('I want to complain about my order'), null);
+  assert.equal(a('hello'), null);
+});

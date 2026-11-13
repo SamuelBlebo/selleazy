@@ -120,7 +120,7 @@ function nameVariants(item: NluCatalogItem): string[] {
 }
 
 /** Levenshtein ≤ 2 for words over 4 letters — "jelof" still finds "jollof", "braids" finds "braid". */
-function fuzzyEq(a?: string, b?: string): boolean {
+export function fuzzyEq(a?: string, b?: string): boolean {
   if (!a || !b) return false;
   if (a === b) return true;
   if (b.length > 3 && (a.startsWith(b) || b.startsWith(a))) return Math.abs(a.length - b.length) <= 2;
