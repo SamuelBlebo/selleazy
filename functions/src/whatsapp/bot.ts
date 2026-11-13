@@ -64,6 +64,7 @@ const A = {
 } as const;
 
 const PAGE = 9;
+const words = (ctx: Ctx) => vocabulary(ctx.org.businessType, ctx.org.category);
 /** After "Need help" the bot stays quiet this long, so staff can talk without it butting in. */
 const HUMAN_QUIET_MS = 4 * 60 * 60000;
 const GREETINGS = ['hi', 'hello', 'hey', 'start', 'good morning', 'good afternoon', 'good evening', 'akwaaba'];
@@ -74,6 +75,7 @@ interface Org {
   area: string | null;
   phone: string | null;
   businessType: BusinessType;
+  category: string | null;
   features: OrgFeatures;
   deliveryFeeMinor: number;
   currency: Currency;
@@ -127,6 +129,7 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
     area: (o.area as string) ?? null,
     phone: (o.phone as string) ?? null,
     businessType: (o.businessType as BusinessType) ?? 'retail',
+    category: (o.category as string) ?? null,
     features: (o.features as OrgFeatures) ?? { kitchen: false, bookings: false, delivery: true, pickup: true, onSite: false },
     deliveryFeeMinor: (o.deliveryFeeMinor as number) ?? 0,
     currency: (o.currency as Currency) ?? 'GHS',
@@ -165,7 +168,7 @@ async function route(ctx: Ctx, m: InboundMessage, body: string | null): Promise<
   const actionId = m.interactive?.list_reply?.id ?? m.interactive?.button_reply?.id;
   if (actionId) return handleAction(ctx, actionId);
   if (m.type !== 'text' || !body) {
-    await ctx.out.text(`We can only read text messages here. Send "hi" to see our ${vocabulary(ctx.org.businessType).catalog}.`);
+    await ctx.out.text(`We can only read text messages here. Send "hi" to see our ${words(ctx).catalog}.`);
     return {};
   }
 
@@ -256,14 +259,14 @@ async function greet(ctx: Ctx): Promise<Partial<Session>> {
 
   await ctx.out.text(ctx.org.greeting);
   await pause(1200);
-  const shownPhotos = await showPhotos(ctx, top, 'Our top picks:');
+  const shownPhotos = await showPhotos(ctx, top, `${words(ctx).topPicks}:`);
   if (shownPhotos) await pause(2000);
 
   const listed = shownPhotos ? top.filter((i) => !i.imageUrl) : top;
   const preview = listed.map((i) => `• ${i.name} — ${priceLine(i, ctx.org.currency)}`).join('\n');
   await ctx.out.buttons({
-    body: [preview ? `${shownPhotos ? 'Also' : 'Our top picks'}:\n${preview}` : null, `Want to see everything, or need help?`].filter(Boolean).join('\n\n'),
-    buttons: [{ id: A.shop, title: 'Explore more' }, { id: A.human, title: 'Need help' }],
+    body: [preview ? `${shownPhotos ? 'Also' : words(ctx).topPicks}:\n${preview}` : null, `Want to see all our ${words(ctx).catalog}, or need help?`].filter(Boolean).join('\n\n'),
+    buttons: exploreOrHelp(ctx),
   });
   return { step: 'browsing', catalogIds: items.map((i) => i.id), catalogPage: 0 };
 }
@@ -276,9 +279,9 @@ async function chatWithSomeone(ctx: Ctx): Promise<Partial<Session>> {
 
 async function showCatalog(ctx: Ctx, prefix: string | undefined, page: number, photos = true): Promise<Partial<Session>> {
   const items = await activeItems(ctx.orgId);
-  const words = vocabulary(ctx.org.businessType);
+  const w = words(ctx);
   if (!items.length) {
-    await ctx.out.text([prefix, `Our ${words.catalog} is being updated. A team member will reply shortly.`].filter(Boolean).join('\n\n'));
+    await ctx.out.text([prefix, `Our ${w.catalog} is being updated. A team member will reply shortly.`].filter(Boolean).join('\n\n'));
     return { step: 'idle', catalogIds: [] };
   }
   const start = page * PAGE < items.length ? page * PAGE : 0;
@@ -289,7 +292,7 @@ async function showCatalog(ctx: Ctx, prefix: string | undefined, page: number, p
   const shownPhotos = photos && (await showPhotos(ctx, slice, prefix));
   await ctx.out.list({
     body: [shownPhotos ? null : prefix, `${shownPhotos ? 'Or see the full list. ' : ''}Tap to choose, or just type what you want, e.g. "2 of number 3".`].filter(Boolean).join('\n\n'),
-    button: words.button,
+    button: w.button,
     section: ctx.org.name,
     rows,
   });
@@ -304,7 +307,7 @@ async function showCatalog(ctx: Ctx, prefix: string | undefined, page: number, p
 async function showPhotos(ctx: Ctx, items: Item[], prefix: string | undefined): Promise<boolean> {
   const withPhoto = items.filter((i) => i.imageUrl).slice(0, 10);
   if (!withPhoto.length) return false;
-  const buttonTitle = (i: Item) => (i.kind === 'service' ? 'Book this' : 'Add to cart');
+  const buttonTitle = (i: Item) => (i.kind === 'service' ? words(ctx).book : words(ctx).pick);
   // A card allows 160 characters and at most two line breaks.
   const cardBody = (i: Item) => [`*${i.name}*`, priceLine(i, ctx.org.currency), i.description?.replace(/\s+/g, ' ').trim() || null].filter(Boolean).join('\n');
   const body = [prefix, 'Swipe to see more, then tap a button to choose.'].filter(Boolean).join('\n\n');
@@ -358,23 +361,25 @@ async function addToCart(ctx: Ctx, item: Item, qty: number): Promise<Partial<Ses
     : [...ctx.s.cart, line];
   await ctx.out.buttons({
     body: `Added.\n${cartText(cart, ctx.org.currency)}`,
-    buttons: [{ id: A.addMore, title: 'Add more' }, { id: A.checkout, title: 'Checkout' }],
+    buttons: [{ id: A.addMore, title: 'Add more' }, { id: A.checkout, title: checkoutTitle(cart) }],
   });
   return { step: 'browsing', cart, pendingItemId: null };
 }
 
+/** A cart of only services is a booking. */
+const checkoutTitle = (cart: CartLine[]) => (cart.every((l) => l.kind === 'service') ? 'Book now' : 'Checkout');
 const cartTotal = (cart: CartLine[]) => cart.reduce((s, l) => s + l.priceMinor * l.quantity, 0);
 const cartText = (cart: CartLine[], currency: Currency) =>
   `${linesSummary(cart.map((l) => ({ name: l.name, quantity: l.quantity, unitPriceMinor: l.priceMinor })), currency)}\nSubtotal: ${formatMoney(cartTotal(cart), currency)}`;
 
 async function showCart(ctx: Ctx): Promise<Partial<Session>> {
   if (!ctx.s.cart.length) {
-    await ctx.out.buttons({ body: 'Your cart is empty.', buttons: [{ id: A.browse, title: vocabulary(ctx.org.businessType).button }] });
+    await ctx.out.buttons({ body: 'Your cart is empty.', buttons: [{ id: A.browse, title: words(ctx).button }] });
     return { step: 'idle' };
   }
   await ctx.out.buttons({
     body: `${cartText(ctx.s.cart, ctx.org.currency)}\n\nTo change an item, reply "qty 2 3" or "remove 2".`,
-    buttons: [{ id: A.checkout, title: 'Checkout' }, { id: A.addMore, title: 'Add more' }, { id: A.clear, title: 'Empty cart' }],
+    buttons: [{ id: A.checkout, title: checkoutTitle(ctx.s.cart) }, { id: A.addMore, title: 'Add more' }, { id: A.clear, title: 'Empty cart' }],
   });
   return { step: 'browsing' };
 }
@@ -391,7 +396,7 @@ async function editCart(ctx: Ctx, position: number, qty: number): Promise<Partia
 }
 
 async function reset(ctx: Ctx, message: string): Promise<Partial<Session>> {
-  await ctx.out.buttons({ body: message, buttons: [{ id: A.browse, title: vocabulary(ctx.org.businessType).button }] });
+  await ctx.out.buttons({ body: message, buttons: [{ id: A.browse, title: words(ctx).button }] });
   return { step: 'idle', cart: [], pendingItemId: null, fulfilment: null, address: null, timeRequest: null, timeAt: null };
 }
 
@@ -518,7 +523,7 @@ async function confirmCheckout(ctx: Ctx): Promise<Partial<Session>> {
     await ctx.out.text(why);
     return { step: 'browsing' };
   }
-  const noun = s.cart.every((l) => l.kind === 'service') ? vocabulary(ctx.org.businessType).order : 'order';
+  const noun = s.cart.every((l) => l.kind === 'service') ? words(ctx).order : 'order';
   await ctx.out.text(
     [
       `${noun[0].toUpperCase()}${noun.slice(1)} #${result.number} received. Total ${formatMoney(result.totalMinor, ctx.org.currency)}.`,
@@ -599,7 +604,7 @@ async function readFreeText(ctx: Ctx, text: string): Promise<Partial<Session>> {
   }
 }
 
-const exploreOrHelp = [{ id: A.shop, title: 'Explore more' }, { id: A.human, title: 'Need help' }];
+const exploreOrHelp = (ctx: Ctx) => [{ id: A.shop, title: words(ctx).explore }, { id: A.human, title: 'Need help' }];
 
 /** "How much is jollof?" → that price; "What are your prices?" → the price list. */
 async function replyPrices(ctx: Ctx, items: Item[], itemIds: string[]): Promise<Partial<Session>> {
@@ -608,11 +613,11 @@ async function replyPrices(ctx: Ctx, items: Item[], itemIds: string[]): Promise<
   const more = asked.length ? 0 : items.length - shown.length;
   await ctx.out.buttons({
     body: [
-      asked.length ? null : 'Here are our prices:',
+      asked.length ? null : words(ctx).pricesIntro,
       shown.map((i) => `• ${i.name} — ${priceLine(i, ctx.org.currency)}`).join('\n') + (more > 0 ? `\n…and ${more} more` : ''),
-      'Tap Explore more to order.',
+      `Tap ${words(ctx).explore} to ${words(ctx).order === 'booking' ? 'book' : 'order'}.`,
     ].filter(Boolean).join('\n\n'),
-    buttons: exploreOrHelp,
+    buttons: exploreOrHelp(ctx),
   });
   return { step: 'browsing', catalogIds: items.map((i) => i.id), catalogPage: 0 };
 }
@@ -640,7 +645,7 @@ async function replyFaq(ctx: Ctx, topic: 'location' | 'delivery' | 'payment'): P
       : 'We will tell you how to pay when you place your order.';
   }
   if (!answer) return handoff(ctx);
-  await ctx.out.buttons({ body: answer, buttons: exploreOrHelp });
+  await ctx.out.buttons({ body: answer, buttons: exploreOrHelp(ctx) });
   return {};
 }
 
@@ -694,7 +699,7 @@ async function replyOrderStatus(ctx: Ctx, number: number | null): Promise<Partia
   const snap = await q.orderBy('createdAt', 'desc').limit(1).get();
   const order = snap.docs[0];
   if (!order) {
-    await ctx.out.text(`We could not find an order for you. Reply "menu" to see our ${vocabulary(ctx.org.businessType).catalog}.`);
+    await ctx.out.text(`We could not find an order for you. Reply "menu" to see our ${words(ctx).catalog}.`);
     return {};
   }
   const label: Record<string, string> = {

@@ -22,10 +22,24 @@ export function defaultFeatures(type: BusinessType): OrgFeatures {
   return { kitchen: type === 'food', bookings: type === 'services' || type === 'mixed', delivery: type !== 'services', pickup: type !== 'services', onSite: false };
 }
 
-export function vocabulary(type: BusinessType) {
+/** Category words win over business-type words. Mirrors functions/src/whatsapp/copy.ts vocabulary(). */
+const CATEGORY_WORDS: Record<string, { catalog: string; item: string }> = {
+  'Salon & barbering': { catalog: 'Styles & prices', item: 'style' },
+  'Salon & beauty': { catalog: 'Styles & products', item: 'item' },
+  Tailoring: { catalog: 'Styles', item: 'style' },
+  'Fashion & tailoring': { catalog: 'Styles', item: 'style' },
+  Repairs: { catalog: 'Repairs', item: 'repair' },
+  'Events & photography': { catalog: 'Packages', item: 'package' },
+  'Health & fitness': { catalog: 'Sessions', item: 'session' },
+  Tutoring: { catalog: 'Lessons', item: 'lesson' },
+  Drinks: { catalog: 'Drinks menu', item: 'drink' },
+};
+
+export function vocabulary(type: BusinessType, category?: string | null) {
   return {
-    catalog: type === 'food' ? 'Menu' : type === 'services' ? 'Services' : 'Catalogue',
-    item: type === 'food' ? 'dish' : type === 'services' ? 'service' : 'product',
+    catalog: type === 'food' ? 'Menu' : type === 'services' ? 'Services' : type === 'retail' ? 'Products' : 'Catalogue',
+    item: type === 'food' ? 'dish' : type === 'services' ? 'service' : type === 'retail' ? 'product' : 'item',
+    ...(category ? CATEGORY_WORDS[category] : undefined),
     order: type === 'services' ? 'booking' : 'order',
   };
 }

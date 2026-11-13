@@ -1,16 +1,57 @@
 import type { BusinessType, Fulfilment, OrderLine, OrderStatus } from '../domain/model';
 import { formatMoney, type Currency } from '../domain/money';
 
-/** Words that change with what the merchant sells. */
-export function vocabulary(type: BusinessType) {
-  switch (type) {
-    case 'food':
-      return { catalog: 'menu', button: 'View menu', order: 'order' };
-    case 'services':
-      return { catalog: 'services', button: 'See services', order: 'booking' };
-    default:
-      return { catalog: 'catalogue', button: 'See items', order: 'order' };
-  }
+/**
+ * Words customers see, by what the merchant sells and their category: a
+ * restaurant has a menu, a shop has best sellers, a salon has styles and a
+ * price list. Button titles stay within WhatsApp's 20 characters.
+ * Mirrors web/src/config/business.ts vocabulary().
+ */
+export interface Words {
+  /** "See our ___" */
+  catalog: string;
+  /** List button */
+  button: string;
+  /** Button that opens the full list after the top picks */
+  explore: string;
+  topPicks: string;
+  /** Card button for a product / a service */
+  pick: string;
+  book: string;
+  order: 'order' | 'booking';
+  item: string;
+  pricesIntro: string;
+}
+
+const BY_TYPE: Record<BusinessType, Words> = {
+  food: { catalog: 'menu', button: 'View menu', explore: 'Full menu', topPicks: "Today's favourites", pick: 'Order this', book: 'Book this', order: 'order', item: 'dish', pricesIntro: "Here's our menu with prices:" },
+  retail: { catalog: 'shop', button: 'Browse shop', explore: 'Shop all', topPicks: 'Best sellers', pick: 'Add to cart', book: 'Book this', order: 'order', item: 'product', pricesIntro: 'Here are our prices:' },
+  services: { catalog: 'services', button: 'See services', explore: 'All services', topPicks: 'Popular services', pick: 'Add to cart', book: 'Book this', order: 'booking', item: 'service', pricesIntro: "Here's our price list:" },
+  mixed: { catalog: 'products and services', button: 'See all', explore: 'See everything', topPicks: 'Popular right now', pick: 'Add to cart', book: 'Book this', order: 'order', item: 'item', pricesIntro: 'Here are our prices:' },
+};
+
+const BY_CATEGORY: Record<string, Partial<Words>> = {
+  'Salon & barbering': { catalog: 'styles and prices', button: 'See styles', explore: 'All styles & prices', topPicks: 'Popular styles', item: 'style', book: 'Book this style' },
+  'Salon & beauty': { catalog: 'styles, products and prices', button: 'See styles', explore: 'All styles & prices', topPicks: 'Popular styles', item: 'style' },
+  Tailoring: { catalog: 'styles', button: 'See styles', explore: 'All styles', topPicks: 'Popular styles', item: 'style', book: 'Sew this style' },
+  'Fashion & tailoring': { catalog: 'styles', button: 'See styles', explore: 'All styles', topPicks: 'New & popular', item: 'style' },
+  Repairs: { catalog: 'repairs and prices', button: 'See repairs', explore: 'All repairs', topPicks: 'Common repairs', item: 'repair', book: 'Book a repair' },
+  'Phones & repairs': { catalog: 'phones, repairs and prices', button: 'See all', explore: 'Phones & repairs', topPicks: 'Popular right now', book: 'Book a repair' },
+  Cleaning: { topPicks: 'Popular cleaning jobs', book: 'Book cleaning' },
+  'Events & photography': { catalog: 'packages', button: 'See packages', explore: 'All packages', topPicks: 'Popular packages', item: 'package', book: 'Book package' },
+  'Health & fitness': { catalog: 'sessions', button: 'See sessions', explore: 'All sessions', topPicks: 'Popular sessions', item: 'session', book: 'Book session' },
+  Tutoring: { catalog: 'lessons', button: 'See lessons', explore: 'All lessons', topPicks: 'Popular lessons', item: 'lesson', book: 'Book lesson' },
+  Fashion: { topPicks: 'New & popular' },
+  'Beauty & cosmetics': { topPicks: 'Customer favourites' },
+  'Phones & electronics': { topPicks: 'Hot deals' },
+  Groceries: { topPicks: 'Popular items' },
+  Pharmacy: { topPicks: 'Popular items' },
+  'Bakery & pastries': { topPicks: 'Fresh today' },
+  Drinks: { catalog: 'drinks menu', topPicks: 'Customer favourites', item: 'drink' },
+};
+
+export function vocabulary(type: BusinessType, category?: string | null): Words {
+  return { ...(BY_TYPE[type] ?? BY_TYPE.retail), ...(category ? BY_CATEGORY[category] : undefined) };
 }
 
 export const FULFILMENT_LABEL: Record<Fulfilment, string> = {

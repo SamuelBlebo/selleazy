@@ -11,5 +11,5 @@ export function usePermission(p: Permission): boolean {
 export function useOrg() {
   const { org, profile } = useAuth();
   if (!org || !profile?.role) throw new Error('useOrg used outside the dashboard');
-  return { org, role: profile.role, words: vocabulary(org.businessType) };
+  return { org, role: profile.role, words: vocabulary(org.businessType, org.category) };
 }

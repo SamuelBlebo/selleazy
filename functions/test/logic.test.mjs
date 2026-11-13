@@ -99,3 +99,16 @@ test('price and FAQ questions', async () => {
   assert.equal((await engine.parse({ text: 'where are you located', catalog: food })).topic, 'location');
   assert.equal((await engine.parse({ text: 'where is my order', catalog: food })).kind, 'ORDER_STATUS');
 });
+
+test('wording fits each business, and WhatsApp buttons stay within 20 characters', () => {
+  const { vocabulary } = require('../lib/whatsapp/copy.js');
+  assert.equal(vocabulary('food', 'Restaurant').button, 'View menu');
+  assert.equal(vocabulary('retail', 'Fashion').topPicks, 'New & popular');
+  assert.equal(vocabulary('services', 'Salon & barbering').button, 'See styles');
+  const types = ['food', 'retail', 'services', 'mixed'];
+  const cats = [null, 'Salon & barbering', 'Salon & beauty', 'Tailoring', 'Fashion & tailoring', 'Repairs', 'Phones & repairs', 'Cleaning', 'Events & photography', 'Health & fitness', 'Tutoring', 'Drinks'];
+  for (const t of types) for (const c of cats) {
+    const w = vocabulary(t, c);
+    for (const k of ['button', 'explore', 'pick', 'book']) assert.ok(w[k].length <= 20, `${t}/${c} ${k}: ${w[k]}`);
+  }
+});

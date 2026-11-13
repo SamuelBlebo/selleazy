@@ -22,7 +22,7 @@ function useNav(): { items: NavItem[]; tabs: NavItem[] } {
   const { org, profile } = useAuth();
   const live = useLive();
   const role = profile?.role ?? null;
-  const words = vocabulary(org!.businessType);
+  const words = vocabulary(org!.businessType, org!.category);
   const has = (p: Permission) => can(role, p);
   const items: NavItem[] = [];
   if (role !== 'kitchen') items.push({ to: '/today', label: 'Today', icon: 'today' });
@@ -41,7 +41,7 @@ function useNav(): { items: NavItem[]; tabs: NavItem[] } {
 function TodayBar() {
   const { org, profile } = useAuth();
   const live = useLive();
-  const words = vocabulary(org!.businessType);
+  const words = vocabulary(org!.businessType, org!.category);
   const open = live.todayOrders.filter((o) => o.status !== 'cancelled');
   const date = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   const showMoney = can(profile?.role, 'payments.verify');
