@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FaqList, FinalCta, PageHero } from '@/components/marketing/Marketing';
+import { whatsappLink } from '@/config/site';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { cn } from '@/utils/cn';
 
 export interface FaqItem {
   question: string;
@@ -15,9 +15,9 @@ export const FAQS: FaqItem[] = [
       "No. They message your existing WhatsApp Business number the way they always have. SellEazy answers on your behalf, shows your products or services, and takes the order or booking. There's no app to download and nothing for them to sign up for.",
   },
   {
-    question: 'Do I need a Meta WhatsApp Business API account?',
+    question: 'Can I keep my current WhatsApp Business number?',
     answer:
-      'Yes — SellEazy connects to your WhatsApp number through the official Meta WhatsApp Cloud API, so your account stays in good standing with Meta. Once your account is set up, connecting it to SellEazy takes a few minutes from Settings.',
+      "Yes. In Settings → WhatsApp choose 'Use my current WhatsApp Business number', sign in with Facebook and scan a QR code with your WhatsApp Business app. You keep using the app on your phone; SellEazy works on the same number through Meta's official WhatsApp Business Platform. When you reply from your phone, the bot steps back for that chat.",
   },
   {
     question: "What happens if I go over my plan's order limit?",
@@ -48,41 +48,24 @@ export const FAQS: FaqItem[] = [
 
 export function FaqPage() {
   usePageTitle('FAQ');
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
+  const wa = whatsappLink();
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-ink">Frequently asked questions</h1>
-
-      <div className="mt-8 divide-y divide-line border-y border-line">
-        {FAQS.map((faq, index) => {
-          const open = openIndex === index;
-          return (
-            <div key={faq.question}>
-              <button
-                type="button"
-                onClick={() => setOpenIndex(open ? null : index)}
-                aria-expanded={open}
-                className="flex w-full items-center justify-between gap-4 py-4 text-left"
-              >
-                <span className="text-sm font-semibold text-ink">{faq.question}</span>
-                <span aria-hidden className={cn('shrink-0 text-muted transition-transform', open && 'rotate-45')}>
-                  +
-                </span>
-              </button>
-              {open && <p className="pb-4 text-sm text-muted">{faq.answer}</p>}
-            </div>
-          );
-        })}
-      </div>
-
-      <p className="mt-8 text-sm text-muted">
-        Still have a question?{' '}
-        <Link to="/help" className="font-semibold text-brand">
-          Visit the Help Center
-        </Link>
-        .
-      </p>
+    <div className="bg-[#FBF6EC] text-[#14231D]">
+      <PageHero eyebrow="FAQ" title="Questions merchants ask us." sub="Straight answers about WhatsApp, payments, plans and your data." />
+      <section className="mx-auto -mt-8 max-w-3xl px-4 pb-16 sm:px-6">
+        <div className="relative"><FaqList items={FAQS} firstOpen /></div>
+        <p className="mt-8 text-center text-[#5B6B64]">
+          Still have a question?{' '}
+          <Link to="/help" className="font-semibold text-[#0B7A6B] underline-offset-2 hover:underline">Visit the Help Center</Link>
+          {wa && (
+            <>
+              {' '}or <a href={wa} target="_blank" rel="noreferrer" className="font-semibold text-[#0B7A6B] underline-offset-2 hover:underline">ask us on WhatsApp</a>
+            </>
+          )}
+          .
+        </p>
+      </section>
+      <FinalCta />
     </div>
   );
 }

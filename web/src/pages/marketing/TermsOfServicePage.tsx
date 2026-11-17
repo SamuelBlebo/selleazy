@@ -1,3 +1,4 @@
+import { PageHero, Prose } from '@/components/marketing/Marketing';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { SITE } from '@/config/site';
 
@@ -6,11 +7,11 @@ const LAST_UPDATED = 'September 7, 2026';
 export function TermsOfServicePage() {
   usePageTitle('Terms of Service');
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-ink">Terms of Service</h1>
-      <p className="mt-2 text-sm text-muted">Last updated {LAST_UPDATED}</p>
+    <div className="bg-[#FBF6EC] text-[#14231D]">
+      <PageHero eyebrow="Legal" title="Terms of Service" sub={<p className="text-base">Last updated {LAST_UPDATED}</p>} />
+      <Prose>
 
-      <div className="mt-8 space-y-8">
+      <div className="space-y-8">
         <section>
           <h2 className="text-base font-semibold text-ink">1. Agreement</h2>
           <p className="mt-2 text-sm text-muted">
@@ -115,6 +116,7 @@ export function TermsOfServicePage() {
           </p>
         </section>
       </div>
+      </Prose>
     </div>
   );
 }

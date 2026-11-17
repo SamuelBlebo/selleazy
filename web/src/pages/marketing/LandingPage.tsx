@@ -1,12 +1,11 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { CTA, FaqList, FinalCta, PricingCards, SectionHead } from '@/components/marketing/Marketing';
 import { Icon } from '@/components/ui';
-import { PLANS } from '@/config/plans';
 import { whatsappLink } from '@/config/site';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { FAQS } from '@/pages/marketing/FaqPage';
 import { cn } from '@/utils/cn';
-import { money } from '@/utils/format';
 
 /*
  * The public home page. Its own fixed palette (forest green, gold, cream), so
@@ -16,8 +15,6 @@ import { money } from '@/utils/format';
 
 /** Real merchant quotes go here once pilots agree to be named. Empty = section hidden. */
 const TESTIMONIALS: Array<{ quote: string; name: string; business: string }> = [];
-
-const CTA = 'inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
 
 export function LandingPage() {
   usePageTitle('Sell on WhatsApp, get paid by MoMo');
@@ -137,16 +134,6 @@ function TrustStrip() {
 }
 
 /* --------------------------------- Sections -------------------------------- */
-
-function SectionHead({ eyebrow, title, sub, center }: { eyebrow: string; title: string; sub?: string; center?: boolean }) {
-  return (
-    <div className={cn('max-w-2xl', center && 'mx-auto text-center')}>
-      <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#B7791F]">{eyebrow}</p>
-      <h2 className="mt-3 font-display text-3xl font-bold leading-tight tracking-tight sm:text-[2.6rem]">{title}</h2>
-      {sub && <p className="mt-4 text-lg text-[#4A5A53]">{sub}</p>}
-    </div>
-  );
-}
 
 function Problem() {
   const pains = [
@@ -323,35 +310,7 @@ function Pricing() {
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-24">
       <SectionHead center eyebrow="Pricing" title="Start free. Upgrade when you're busy." sub="Pay monthly with MoMo or card. Going over your limit never blocks a customer's order." />
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {PLANS.map((p) => {
-          const featured = p.id === 'growth';
-          return (
-            <article key={p.id} className={cn('relative flex flex-col rounded-3xl p-6', featured ? 'bg-[#0E3B2E] text-white shadow-xl' : 'border border-[#E8DFCC] bg-white')}>
-              {featured && <span className="absolute -top-3 left-6 rounded-full bg-[#F5B82E] px-3 py-1 text-xs font-bold text-[#14231D]">Recommended</span>}
-              <h3 className="text-lg font-semibold">{p.name}</h3>
-              <p className="mt-3 font-display text-4xl font-bold tabular">
-                {p.priceMinor ? money(p.priceMinor, 'GHS').replace('.00', '') : 'Free'}
-                {p.priceMinor > 0 && <span className={cn('text-sm font-medium', featured ? 'text-white/60' : 'text-[#5B6B64]')}> / month</span>}
-              </p>
-              <ul className="mt-6 space-y-2.5 text-[15px]">
-                {p.features.map((f) => (
-                  <li key={f} className="flex gap-2">
-                    <Icon name="check" className={cn('mt-0.5 h-4 w-4 shrink-0', featured ? 'text-[#F5B82E]' : 'text-[#0B7A6B]')} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/signup"
-                className={cn(CTA, 'mt-8 h-11 w-full', featured ? 'bg-[#F5B82E] text-[#14231D] hover:bg-[#FFC94D]' : 'border border-[#14231D]/15 hover:bg-[#F4EDDE]')}
-              >
-                {p.priceMinor ? 'Start free' : 'Get started'}
-              </Link>
-            </article>
-          );
-        })}
-      </div>
+      <div className="mt-12"><PricingCards /></div>
     </section>
   );
 }
@@ -360,43 +319,10 @@ function Faq() {
   return (
     <section className="mx-auto max-w-3xl px-4 pb-20 sm:px-6 sm:pb-24">
       <SectionHead center eyebrow="Questions" title="Good to know" />
-      <div className="mt-10 divide-y divide-[#E8DFCC] rounded-3xl border border-[#E8DFCC] bg-white">
-        {FAQS.slice(0, 6).map((f) => (
-          <details key={f.question} className="group px-6 py-5">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold [&::-webkit-details-marker]:hidden">
-              {f.question}
-              <span aria-hidden className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#F4EDDE] text-lg leading-none transition-transform group-open:rotate-45">+</span>
-            </summary>
-            <p className="mt-3 text-[#4A5A53]">{f.answer}</p>
-          </details>
-        ))}
-      </div>
+      <div className="mt-10"><FaqList items={FAQS.slice(0, 6)} /></div>
       <p className="mt-6 text-center text-sm text-[#5B6B64]">
         More answers in the <Link to="/faq" className="font-semibold text-[#0B7A6B] underline-offset-2 hover:underline">FAQ</Link> and <Link to="/help" className="font-semibold text-[#0B7A6B] underline-offset-2 hover:underline">Help Center</Link>.
       </p>
-    </section>
-  );
-}
-
-function FinalCta() {
-  const wa = whatsappLink();
-  return (
-    <section className="px-4 pb-20 sm:px-6">
-      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-[#F5B82E] px-6 py-14 text-center sm:py-20">
-        <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/25 blur-2xl" />
-        <h2 className="relative font-display text-3xl font-bold tracking-tight sm:text-5xl">Your next order is a message away.</h2>
-        <p className="relative mx-auto mt-4 max-w-lg text-lg text-[#14231D]/75">Set up SellEazy today, free. Keep your number, keep your customers.</p>
-        <div className="relative mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link to="/signup" className={cn(CTA, 'bg-[#0E3B2E] text-white hover:bg-[#14503F] focus-visible:ring-[#0E3B2E] focus-visible:ring-offset-[#F5B82E]')}>
-            Start free <Icon name="arrow" className="h-4 w-4" />
-          </Link>
-          {wa && (
-            <a href={wa} target="_blank" rel="noreferrer" className={cn(CTA, 'border border-[#14231D]/25 hover:bg-white/30')}>
-              Chat with us on WhatsApp
-            </a>
-          )}
-        </div>
-      </div>
     </section>
   );
 }

@@ -1,5 +1,6 @@
-import { usePageTitle } from '@/hooks/usePageTitle';
+import { PageHero, Prose } from '@/components/marketing/Marketing';
 import { SITE } from '@/config/site';
+import { usePageTitle } from '@/hooks/usePageTitle';
 
 interface HelpArticle {
   title: string;
@@ -35,10 +36,10 @@ const SECTIONS: HelpSection[] = [
     title: 'Connecting WhatsApp',
     articles: [
       {
-        title: 'What you need before connecting',
+        title: 'Connecting your number',
         body: [
-          'A WhatsApp Business Account and phone number registered on the Meta WhatsApp Cloud API. If you don\'t have one yet, Meta sets this up through Meta Business Suite.',
-          "In SellEazy, open Settings → WhatsApp and tap Continue with Facebook. Pick your business and number in Meta's window. SellEazy never sees your Facebook password; Meta gives SellEazy's server a key it keeps private.",
+          "Open Settings → WhatsApp. Choose 'Use my current WhatsApp Business number' to keep using the WhatsApp Business app on your phone, or 'Use a new number' for a number that isn't on WhatsApp yet.",
+          "Tap Continue with Facebook and follow Meta's window. For your current number you'll scan a QR code with the WhatsApp Business app. SellEazy never sees your Facebook password.",
         ],
       },
       {
@@ -108,42 +109,43 @@ const SECTIONS: HelpSection[] = [
 export function HelpCenterPage() {
   usePageTitle('Help Center');
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="text-3xl font-semibold tracking-tight text-ink">Help Center</h1>
-      <p className="mt-3 text-muted">Short guides for getting your shop running on SellEazy.</p>
-
-      <div className="mt-10 space-y-12">
-        {SECTIONS.map((section) => (
-          <section key={section.title}>
-            <h2 className="text-lg font-semibold text-ink">{section.title}</h2>
-            <div className="mt-4 space-y-6">
-              {section.articles.map((article) => (
-                <div key={article.title}>
-                  <h3 className="text-sm font-semibold text-ink">{article.title}</h3>
-                  <div className="mt-1.5 space-y-2">
-                    {article.body.map((paragraph, i) => (
-                      <p key={i} className="text-sm text-muted">
-                        {paragraph}
-                      </p>
-                    ))}
+    <div className="bg-[#FBF6EC] text-[#14231D]">
+      <PageHero eyebrow="Help Center" title="Get your shop running." sub="Short guides for setting up SellEazy and running it every day.">
+        <nav aria-label="Help topics" className="mt-8 flex flex-wrap gap-2">
+          {SECTIONS.map((section) => (
+            <a key={section.title} href={`#${slug(section.title)}`} className="rounded-full border border-white/20 px-4 py-1.5 text-sm font-medium text-white/85 hover:bg-white/10">
+              {section.title}
+            </a>
+          ))}
+        </nav>
+      </PageHero>
+      <Prose>
+        <div className="space-y-12">
+          {SECTIONS.map((section) => (
+            <section key={section.title} id={slug(section.title)} className="scroll-mt-24">
+              <h2>{section.title}</h2>
+              <div className="mt-5 space-y-6">
+                {section.articles.map((article) => (
+                  <div key={article.title}>
+                    <h3 className="font-semibold">{article.title}</h3>
+                    <div className="mt-1.5 space-y-2 text-[#4A5A53]">
+                      {article.body.map((paragraph, i) => <p key={i}>{paragraph}</p>)}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
-
-      <div className="mt-14 rounded-2xl border border-line bg-surface p-6">
-        <h2 className="text-base font-semibold text-ink">Still stuck?</h2>
-        <p className="mt-1.5 text-sm text-muted">
-          Email{' '}
-          <a href={`mailto:${SITE.supportEmail}`} className="font-semibold text-brand">
-            {SITE.supportEmail}
-          </a>{' '}
-          and we'll get back to you.
-        </p>
-      </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+        <div className="mt-12 rounded-2xl bg-[#F4EDDE] p-6">
+          <h2>Still stuck?</h2>
+          <p className="mt-1.5 text-[#4A5A53]">
+            Email <a href={`mailto:${SITE.supportEmail}`} className="font-semibold">{SITE.supportEmail}</a> and we'll get back to you.
+          </p>
+        </div>
+      </Prose>
     </div>
   );
 }
+
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z]+/g, '-');

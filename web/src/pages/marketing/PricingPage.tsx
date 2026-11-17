@@ -1,27 +1,32 @@
-import { Link } from 'react-router-dom';
-import { Button, Icon } from '@/components/ui';
-import { PLANS } from '@/config/plans';
+import { FaqList, FinalCta, PageHero, PricingCards, SectionHead } from '@/components/marketing/Marketing';
 import { usePageTitle } from '@/hooks/usePageTitle';
-import { money } from '@/utils/format';
+import { FAQS } from '@/pages/marketing/FaqPage';
+
+/** Billing questions only; the full list lives on /faq. */
+const BILLING_FAQS = FAQS.filter((f) => /plan|limit|pay/i.test(f.question));
 
 export function PricingPage() {
   usePageTitle('Pricing');
   return (
-    <section className="mx-auto max-w-6xl px-6 py-14">
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Simple pricing in cedis</h1>
-      <p className="mt-3 max-w-xl text-muted">Pay monthly with MoMo or card. Going over your order limit never blocks a customer; we just ask you to upgrade.</p>
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {PLANS.map((p) => (
-          <article key={p.id} className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
-            <h2 className="font-semibold">{p.name}</h2>
-            <p className="tabular text-3xl font-semibold">{money(p.priceMinor, 'GHS').replace('.00', '')}<span className="text-sm font-medium text-muted"> / month</span></p>
-            <ul className="space-y-2 text-sm">
-              {p.features.map((f) => <li key={f} className="flex gap-2"><Icon name="check" className="mt-0.5 h-4 w-4 text-ok" />{f}</li>)}
-            </ul>
-            <Link to="/signup" className="mt-auto pt-2"><Button fullWidth variant={p.id === 'starter' ? 'primary' : 'secondary'}>Start free</Button></Link>
-          </article>
-        ))}
-      </div>
-    </section>
+    <div className="bg-[#FBF6EC] text-[#14231D]">
+      <PageHero
+        eyebrow="Pricing"
+        title="Simple pricing in cedis."
+        sub="Start free. Pay monthly with MoMo or card when you grow. Going over your order limit never blocks a customer; we just ask you to upgrade."
+      />
+      <section className="mx-auto -mt-10 max-w-6xl px-4 pb-20 sm:px-6">
+        <div className="relative">
+          <PricingCards />
+        </div>
+        <p className="mt-6 text-center text-sm text-[#5B6B64]">All plans include WhatsApp ordering, your catalogue, orders and customers in one place.</p>
+      </section>
+      {BILLING_FAQS.length > 0 && (
+        <section className="mx-auto max-w-3xl px-4 pb-20 sm:px-6">
+          <SectionHead center eyebrow="Questions" title="About plans and billing" />
+          <div className="mt-10"><FaqList items={BILLING_FAQS} /></div>
+        </section>
+      )}
+      <FinalCta title="Try it free today." sub="Your first 15 orders every month are on us. No card needed." />
+    </div>
   );
 }
