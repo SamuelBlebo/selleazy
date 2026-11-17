@@ -47,6 +47,13 @@ export interface Subscription {
   billingEmail?: string | null;
 }
 
+/** Settings → Reviews. Mirrors functions/src/domain/reviews.ts. */
+export interface ReviewSettings {
+  enabled: boolean;
+  link: string;
+  message: string;
+}
+
 export type SetupStepId = 'whatsapp' | 'items' | 'pay' | 'test';
 
 export interface WhatsAppMirror {
@@ -73,7 +80,7 @@ export interface Organization {
   features: OrgFeatures;
   ownerUid: string;
   /** phoneReplyPauseMinutes: how long the bot stays quiet after the owner replies from the phone app (Coexistence). 0 = off, missing = 30. */
-  bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[]; hours?: OpeningHours; phoneReplyPauseMinutes?: number };
+  bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[]; hours?: OpeningHours; phoneReplyPauseMinutes?: number; review?: ReviewSettings };
   momo: { mtn: string | null; telecel: string | null; airteltigo: string | null; accountName: string | null };
   subscription: Subscription;
   /** Setup wizard: steps put off ("do this later") and whether the merchant reached the end. */

@@ -13,7 +13,7 @@ import { useOrg } from '@/hooks/usePermission';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/useToast';
 import { cancelInvite, changePlan, disconnectWhatsapp, inviteMember, removeMember, sendTestMessage, updateMemberRole, updateSettings } from '@/services';
-import type { BusinessType, DayHours, Faq, OpeningHours, Role } from '@/types';
+import type { BusinessType, DayHours, Faq, OpeningHours, ReviewSettings, Role } from '@/types';
 import { cn } from '@/utils/cn';
 import { toMessage } from '@/utils/errors';
 import { money, formatDate, toMinor, currencySymbol, CURRENCIES, type Currency } from '@/utils/format';
@@ -22,6 +22,7 @@ const TABS = [
   ['business', 'Business'],
   ['hours', 'Opening hours'],
   ['faqs', 'Bot answers'],
+  ['reviews', 'Reviews'],
   ['whatsapp', 'WhatsApp'],
   ['momo', 'MoMo numbers'],
   ['team', 'Team & roles'],
@@ -32,7 +33,7 @@ export function SettingsPage() {
   usePageTitle('Settings');
   const { tab = 'business' } = useParams();
   if (!TABS.some(([id]) => id === tab)) return <Navigate to="/settings" replace />;
-  const Body = { business: BusinessTab, hours: HoursTab, faqs: FaqTab, whatsapp: WhatsAppTab, momo: MomoTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
+  const Body = { business: BusinessTab, hours: HoursTab, faqs: FaqTab, reviews: ReviewsTab, whatsapp: WhatsAppTab, momo: MomoTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
   return (
     <div className="mx-auto max-w-5xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader title="Settings" />
@@ -329,6 +330,58 @@ const DEFAULT_HOURS: OpeningHours = {
   ordersWhenClosed: true,
   days: [null, ...Array.from({ length: 6 }, (): DayHours => ({ open: '08:00', close: '20:00' }))],
 };
+
+/** Same default and rules as functions/src/domain/reviews.ts. */
+const DEFAULT_REVIEW_MESSAGE = 'Thank you for choosing {business}, {name}! How did we do? A quick review helps us a lot: {link}';
+
+/** Settings → Reviews: ask customers for a review when their order is done. */
+function ReviewsTab() {
+  const { org } = useOrg();
+  const { busy, save } = useSaver();
+  const [r, setR] = useState<ReviewSettings>({ enabled: false, link: '', message: DEFAULT_REVIEW_MESSAGE, ...org.bot.review });
+  const validLink = /^https:\/\/\S+$/.test(r.link.trim());
+  const sample = (r.message.trim() || DEFAULT_REVIEW_MESSAGE)
+    .replace(/\{business\}/g, org.name)
+    .replace(/\{name\}/g, 'Kofi')
+    .replace(/\{number\}/g, '42');
+  const preview = sample.includes('{link}') ? sample.replace(/\{link\}/g, r.link.trim() || 'your link') : `${sample}\n${r.link.trim() || 'your link'}`;
+  return (
+    <Card>
+      <CardHeader title="Ask for reviews" description="When an order is marked Done, the customer gets a thank-you with your review link on WhatsApp." />
+      <CardBody className="space-y-4">
+        <SettingRow title="Send a review request" hint="Once per order. A customer is asked at most once a month.">
+          <Switch checked={r.enabled} label="Send a review request" onChange={(v) => setR({ ...r, enabled: v })} />
+        </SettingRow>
+        <Input
+          label="Your review link"
+          inputMode="url"
+          placeholder="https://g.page/r/your-business/review"
+          value={r.link}
+          onChange={(e) => setR({ ...r, link: e.target.value })}
+          error={r.link && !validLink ? 'Paste the full link, starting with https://' : undefined}
+          hint="Google: Business Profile → Ask for reviews → copy the link. Facebook or any page works too."
+        />
+        <Textarea label="Message" rows={3} value={r.message} onChange={(e) => setR({ ...r, message: e.target.value.slice(0, 600) })} hint="{name} = customer's first name, {business} = your business name, {number} = order number, {link} = your link." />
+        <div>
+          <p className="mb-1.5 text-sm font-medium">What the customer sees</p>
+          <div className="rounded-xl bg-chat p-3">
+            <p className="w-fit max-w-[90%] whitespace-pre-wrap break-words rounded-xl rounded-tl-sm bg-surface px-3 py-2 text-sm shadow-sm">{preview}</p>
+          </div>
+        </div>
+        <p className="text-sm text-muted">WhatsApp only delivers it if the customer messaged you in the last 24 hours, which is usual for WhatsApp orders.</p>
+        <div className="flex justify-end">
+          <Button
+            loading={busy}
+            disabled={r.enabled && !validLink}
+            onClick={() => void save(() => updateSettings(org.id, { bot: { ...org.bot, review: { enabled: r.enabled, link: r.link.trim(), message: r.message.trim() || DEFAULT_REVIEW_MESSAGE } } }))}
+          >
+            Save
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
 
 function HoursTab() {
   const { org } = useOrg();

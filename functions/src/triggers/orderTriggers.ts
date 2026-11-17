@@ -4,6 +4,7 @@ import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/fire
 import type { BusinessType, CatalogItem, Fulfilment, OrderStatus, PlanId } from '../domain/model';
 import { PLANS } from '../billing/plans';
 import { itemsRef, loadCredentialsForOrg, orgRef, stockMovementsRef } from '../tenant';
+import { askForReview } from '../services/reviews';
 import { Outbox } from '../whatsapp/client';
 import { statusMessage } from '../whatsapp/copy';
 
@@ -32,6 +33,8 @@ export const onOrderStatusChange = onDocumentUpdated('organizations/{orgId}/orde
     return;
   }
   await new Outbox(creds, orgId, after.customerId as string, 'bot').text(message);
+  // Done: ask for a review right after the "done" update, if the merchant turned it on.
+  if (after.status === 'completed') await askForReview(orgId, event.params.orderId);
 });
 
 /** A product created with starting stock gets an "opening" movement, so the stock history always adds up. */

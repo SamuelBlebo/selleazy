@@ -242,3 +242,34 @@ test('promotion media: only this business\'s files, WhatsApp types and sizes', (
   assert.match(mediaProblem('o1', img, { contentType: 'image/png', size: 6 * 1024 * 1024 }), /5 MB/);
   assert.match(mediaProblem('o1', vid, { contentType: 'video/mp4', size: 17 * 1024 * 1024 }), /16 MB/);
 });
+
+/* ---------------------------- Review requests ----------------------------- */
+
+const R = require('../lib/domain/reviews.js');
+
+test('reviews: only real https links are sent', () => {
+  assert.ok(R.isReviewLink('https://g.page/r/abc123/review'));
+  assert.ok(!R.isReviewLink('http://example.com'), 'not https');
+  assert.ok(!R.isReviewLink('javascript:alert(1)'));
+  assert.ok(!R.isReviewLink('g.page/r/abc'), 'no scheme');
+  assert.ok(!R.isReviewLink(''));
+});
+
+test('reviews: message fills in the details and always carries the link', () => {
+  const v = { business: "Ama's Kitchen", customerName: 'Kofi Mensah', number: 42, link: 'https://g.page/r/x/review' };
+  assert.equal(R.reviewText(undefined, v), "Thank you for choosing Ama's Kitchen, Kofi! How did we do? A quick review helps us a lot: https://g.page/r/x/review");
+  assert.equal(R.reviewText('Order #{number} done. Rate us!', v), 'Order #42 done. Rate us!\nhttps://g.page/r/x/review', 'link added when missing');
+  assert.match(R.reviewText('Hi {name}', { ...v, customerName: null }), /^Hi friend/);
+});
+
+test('reviews: once per order, at most once a month per customer', () => {
+  const now = 1_800_000_000_000;
+  const on = { enabled: true, link: 'https://g.page/r/x/review', message: '' };
+  const base = { settings: on, alreadyAskedForOrder: false, lastAskedCustomerMs: null, nowMs: now };
+  assert.ok(R.shouldAskForReview(base));
+  assert.ok(!R.shouldAskForReview({ ...base, settings: { ...on, enabled: false } }), 'turned off');
+  assert.ok(!R.shouldAskForReview({ ...base, settings: { ...on, link: 'not a link' } }), 'bad link');
+  assert.ok(!R.shouldAskForReview({ ...base, alreadyAskedForOrder: true }), 'same order twice');
+  assert.ok(!R.shouldAskForReview({ ...base, lastAskedCustomerMs: now - 10 * 86400000 }), 'asked 10 days ago');
+  assert.ok(R.shouldAskForReview({ ...base, lastAskedCustomerMs: now - 31 * 86400000 }), 'asked over a month ago');
+});
