@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Input, Select, Spinner } from '@/components/ui';
+import { SetupProgress } from '@/components/setup/SetupProgress';
+import { Button, Icon, Input, Select, Spinner, type IconName } from '@/components/ui';
 import { BUSINESS_TYPES, CATEGORIES } from '@/config/business';
 import { useAuth } from '@/hooks/useAuth';
 import { acceptInvite, createOrganization, signOutUser } from '@/services';
@@ -7,10 +8,12 @@ import type { BusinessType } from '@/types';
 import { cn } from '@/utils/cn';
 import { toMessage } from '@/utils/errors';
 
+const TYPE_ICON: Record<BusinessType, IconName> = { retail: 'box', services: 'scissors', food: 'flame', mixed: 'spark' };
+
 /**
- * Step 2 of signup: what the business sells, then its details. The business
- * is created by the createOrganization Cloud Function; once users/{uid}
- * gets its orgId, the route guard moves the merchant to /today on its own.
+ * Setup step 1: what the business sells, then its details. The business is
+ * created by the createOrganization Cloud Function; once users/{uid} gets
+ * its orgId, the route guard moves the owner on to /setup (steps 2 to 6).
  * Invited staff never see the form: acceptInvite joins them first.
  */
 export function OnboardingPage() {
@@ -32,7 +35,8 @@ export function OnboardingPage() {
   if (!type) {
     return (
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">What do you sell?</h1>
+        <SetupProgress step={1} total={6} label="Your business" />
+        <h1 className="mt-6 font-display text-3xl font-bold tracking-tight">What do you sell?</h1>
         <p className="mt-1 text-sm text-muted">This sets up the right tools. You can change it later.</p>
         <div className="mt-6 space-y-2.5">
           {BUSINESS_TYPES.map((t) => (
@@ -43,13 +47,13 @@ export function OnboardingPage() {
                 setType(t.id);
                 setF((v) => ({ ...v, category: CATEGORIES[t.id][0] }));
               }}
-              className="w-full rounded-2xl border border-line bg-surface px-4 py-3.5 text-left hover:border-brand-2"
+              className="flex w-full items-center gap-4 rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-left transition-colors hover:border-[#0B7A6B]"
             >
-              <span className="flex items-baseline justify-between gap-3">
-                <b>{t.label}</b>
-                <span className="text-xs text-muted">{t.hint}</span>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#FDF0D2] text-[#B7791F]"><Icon name={TYPE_ICON[t.id]} className="h-5 w-5" /></span>
+              <span className="min-w-0">
+                <b className="block">{t.label}</b>
+                <span className="mt-0.5 block text-sm text-muted">{t.examples}</span>
               </span>
-              <span className="mt-0.5 block text-sm text-muted">{t.examples}</span>
             </button>
           ))}
         </div>
@@ -80,8 +84,9 @@ export function OnboardingPage() {
 
   return (
     <div>
-      <button type="button" onClick={() => setType(null)} className="mb-3 text-sm text-muted underline">← Change what you sell</button>
-      <h1 className="text-2xl font-semibold tracking-tight">About your business</h1>
+      <SetupProgress step={1} total={6} label="Your business" />
+      <button type="button" onClick={() => setType(null)} className="mb-3 mt-5 text-sm text-muted underline">← Change what you sell</button>
+      <h1 className="font-display text-3xl font-bold tracking-tight">About your business</h1>
       <p className="mt-1 text-sm text-muted">{BUSINESS_TYPES.find((t) => t.id === type)?.label}</p>
       <div className="mt-6 space-y-4">
         <Input label="Business name" value={f.businessName} onChange={(e) => setF({ ...f, businessName: e.target.value })} placeholder={type === 'services' ? "e.g. Efua's Hair Studio" : type === 'food' ? "e.g. Ama's Kitchen" : 'e.g. Kofi Phones'} />

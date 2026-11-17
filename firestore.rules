@@ -39,6 +39,13 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/platformAdmins/$(request.auth.uid));
     }
 
+    // Setup wizard progress (web/src/pages/SetupPage.tsx): steps put off, and whether it was finished.
+    function validSetup(s) {
+      return s.keys().hasOnly(['later', 'finished'])
+        && s.later is list && s.later.size() <= 10
+        && s.finished is bool;
+    }
+
     function validItem(d) {
       return d.kind in ['product', 'service']
         && d.name is string && d.name.size() > 0 && d.name.size() <= 100
@@ -62,7 +69,8 @@ service cloud.firestore {
       allow create, delete: if false; // createOrganization / deleteMerchant only
       // Owner settings. Never plan, suspension, WhatsApp mirror, counters or ownership.
       allow update: if roleIn(orgId, ['owner'])
-        && onlyChanges(['name', 'phone', 'area', 'category', 'businessType', 'deliveryFeeMinor', 'features', 'bot', 'momo', 'currency', 'updatedAt'])
+        && onlyChanges(['name', 'phone', 'area', 'category', 'businessType', 'deliveryFeeMinor', 'features', 'bot', 'momo', 'currency', 'setup', 'updatedAt'])
+        && (!('setup' in request.resource.data) || validSetup(request.resource.data.setup))
         && request.resource.data.currency in ['GHS', 'NGN', 'USD', 'GBP', 'EUR', 'KES', 'ZAR']
         && request.resource.data.deliveryFeeMinor is int && request.resource.data.deliveryFeeMinor >= 0
         && request.resource.data.businessType in ['food', 'retail', 'services', 'mixed'];

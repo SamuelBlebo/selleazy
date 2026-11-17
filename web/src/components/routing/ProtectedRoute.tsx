@@ -35,7 +35,8 @@ export function OnboardingRoute() {
   if (initialising) return <FullPageSpinner />;
   if (!user) return <Navigate to="/login" replace />;
   if (isPlatformAdmin) return <Navigate to="/admin" replace />;
-  if (profile?.orgId) return <Navigate to="/today" replace />;
+  // A new business goes on to the setup wizard (staff are sent on to /today from there).
+  if (profile?.orgId) return <Navigate to="/setup" replace />;
   return <Outlet />;
 }
 

@@ -25,3 +25,13 @@ export async function trackPageView(path: string): Promise<void> {
   await ready;
   if (analytics) logEvent(analytics, 'page_view', { page_path: path });
 }
+
+/**
+ * Setup wizard funnel: which step a merchant finished or put off, so we can
+ * see where people drop off. Step ids only, never names, numbers or prices.
+ */
+export async function trackSetupStep(step: string, outcome: 'done' | 'later'): Promise<void> {
+  if (!env.measurementId || !ready) return;
+  await ready;
+  if (analytics) logEvent(analytics, 'setup_step', { step, outcome });
+}

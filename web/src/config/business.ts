@@ -188,3 +188,6 @@ const FAQ_BY_CATEGORY: Record<string, Faq[]> = {
 export function suggestedFaqs(type: BusinessType, category?: string | null): Faq[] {
   return [...FAQ_COMMON, ...(FAQ_BY_TYPE[type] ?? []), ...((category && FAQ_BY_CATEGORY[category]) || [])];
 }
+
+/** "dish" → "dishes", "style" → "styles". Vocabulary words are all regular nouns. */
+export const plural = (word: string) => (/(s|sh|ch|x)$/.test(word) ? `${word}es` : `${word}s`);

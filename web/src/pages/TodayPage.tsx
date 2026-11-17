@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { orderBy, query, Timestamp, where } from 'firebase/firestore';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Icon, Segmented, type IconName } from '@/components/ui';
-import { isOpen } from '@/config/business';
+import { isOpen, plural } from '@/config/business';
 import { useLive } from '@/context/LiveContext';
 import { ordersRef } from '@/firebase';
 import { useCollection } from '@/hooks/useCollection';
@@ -71,10 +71,13 @@ export function TodayPage() {
   const listed = live.items.filter((i) => i.active).length;
   const upcoming = (bookings.status === 'ready' ? bookings.data : []).filter((o) => isOpen(o.status)).slice(0, 8);
 
+  // Same steps as the setup wizard (pages/SetupPage.tsx); each opens the wizard.
   const setup = [
-    { done: org.whatsapp.connected, label: 'Connect your WhatsApp number', to: '/settings/whatsapp' },
-    { done: live.items.length > 0, label: `Add your first ${words.item}`, to: '/catalog?new=1' },
-    { done: Boolean(org.momo.mtn || org.momo.telecel || org.momo.airteltigo), label: 'Add the MoMo numbers customers pay to', to: '/settings/momo' },
+    { done: true, label: 'Tell us about your business', to: '/setup' },
+    { done: org.whatsapp.connected, label: 'Connect your WhatsApp number', to: '/setup' },
+    { done: live.items.length > 0, label: `Add what you sell`, to: '/setup' },
+    { done: Boolean(org.momo.mtn || org.momo.telecel || org.momo.airteltigo), label: 'Add the MoMo numbers customers pay to', to: '/setup' },
+    { done: (org.orderCounter ?? 0) > 0, label: 'Send yourself a test order', to: '/setup' },
   ];
   const setupLeft = setup.filter((s) => !s.done);
 
@@ -96,7 +99,10 @@ export function TodayPage() {
 
       {setupLeft.length > 0 && (
         <section className="mb-5 rounded-2xl border border-accent/50 bg-surface p-5">
-          <h2 className="font-semibold">Finish setting up ({setup.length - setupLeft.length} of {setup.length})</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold">Finish setting up ({setup.length - setupLeft.length} of {setup.length})</h2>
+            {role === 'owner' && <Link to="/setup" className="rounded-full bg-[#0E3B2E] px-4 py-1.5 text-sm font-semibold text-white hover:bg-[#14503F]">Continue setup</Link>}
+          </div>
           <ul className="mt-3 space-y-2">
             {setup.map((s) => (
               <li key={s.label}>
@@ -120,7 +126,7 @@ export function TodayPage() {
           canPay ? ['Taken', money(taken), `${inPeriod.filter((o) => o.paymentState === 'paid').length} paid`] : null,
           [`${words.order[0].toUpperCase()}${words.order.slice(1)}s`, String(inPeriod.length), period === 'today' ? `${open.length} still open` : `${inPeriod.filter((o) => isOpen(o.status)).length} still open`],
           ['Customers', String(customers), 'ordered'],
-          [`${words.item[0].toUpperCase()}${words.item.slice(1)}s listed`, String(listed), live.lowStock.length ? `${live.lowStock.length} low on stock` : 'on WhatsApp'],
+          [`${plural(words.item)[0].toUpperCase()}${plural(words.item).slice(1)} listed`, String(listed), live.lowStock.length ? `${live.lowStock.length} low on stock` : 'on WhatsApp'],
         ]
           .filter((x): x is string[] => Boolean(x))
           .map(([label, value, hint], i) => (

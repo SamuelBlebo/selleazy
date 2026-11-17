@@ -47,6 +47,8 @@ export interface Subscription {
   billingEmail?: string | null;
 }
 
+export type SetupStepId = 'whatsapp' | 'items' | 'pay' | 'test';
+
 export interface WhatsAppMirror {
   connected: boolean;
   phoneNumberId: string | null;
@@ -74,6 +76,8 @@ export interface Organization {
   bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[]; hours?: OpeningHours; phoneReplyPauseMinutes?: number };
   momo: { mtn: string | null; telecel: string | null; airteltigo: string | null; accountName: string | null };
   subscription: Subscription;
+  /** Setup wizard: steps put off ("do this later") and whether the merchant reached the end. */
+  setup?: { later: SetupStepId[]; finished: boolean };
   whatsapp: WhatsAppMirror;
   orderCounter: number;
   suspended: boolean;

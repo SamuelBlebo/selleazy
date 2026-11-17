@@ -11,6 +11,7 @@ import { MarketingLayout } from '@/layouts/MarketingLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { OnboardingPage } from '@/pages/auth/OnboardingPage';
 import { SignupPage } from '@/pages/auth/SignupPage';
+import { SetupPage } from '@/pages/SetupPage';
 import { CatalogPage } from '@/pages/CatalogPage';
 import { ChatsPage } from '@/pages/ChatsPage';
 import { CustomersPage } from '@/pages/CustomersPage';
@@ -72,6 +73,7 @@ export default function App() {
             </Route>
 
             <Route element={<ProtectedRoute />}>
+              <Route path="/setup" element={<SetupPage />} />
               <Route element={<DashboardLayout />}>
                 <Route path="/today" element={<TodayPage />} />
                 <Route path="/chats" element={<ChatsPage />} />

@@ -40,6 +40,8 @@ const order = (await getDocs(query(collection(db, 'organizations', orgId, 'order
 await expect('owner reads own business', true, () => getDoc(doc(db, 'organizations', orgId)));
 await expect('owner changes delivery fee', true, () => updateDoc(doc(db, 'organizations', orgId), { deliveryFeeMinor: 1500, businessType: 'services' }));
 await expect('owner gives themselves the Pro plan', false, () => updateDoc(doc(db, 'organizations', orgId), { 'subscription.plan': 'pro' }));
+await expect('owner saves setup progress', true, () => updateDoc(doc(db, 'organizations', orgId), { setup: { later: ['whatsapp'], finished: false } }));
+await expect('owner sneaks extra fields into setup', false, () => updateDoc(doc(db, 'organizations', orgId), { setup: { later: [], finished: true, plan: 'pro' } }));
 await expect('owner flips their own suspension flag', false, () => updateDoc(doc(db, 'organizations', orgId), { suspended: true, suspendedReason: 'x' }));
 await expect('owner edits stock directly (must use adjustStock)', false, () => updateDoc(item.ref, { stock: 999 }));
 await expect('owner changes an order status directly', false, () => updateDoc(order.ref, { status: order.data().status === 'completed' ? 'pending' : 'completed' }));
