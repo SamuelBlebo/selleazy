@@ -296,7 +296,12 @@ function Bubble({ m }: { m: WithId<Message> }) {
   return (
     <div className={cn('flex', out && 'justify-end')}>
       <div className={cn('max-w-[86%] rounded-[10px] px-2.5 pb-1 pt-1.5 shadow-sm sm:max-w-[min(520px,78%)]', out ? 'rounded-tr-sm bg-brand-soft' : 'rounded-tl-sm bg-surface', m.failed && 'ring-1 ring-danger')}>
-        <p className="whitespace-pre-wrap break-words">{m.body ?? <i className="text-muted">({m.type} message)</i>}</p>
+        {m.extra?.mediaUrl && (
+          m.type === 'video'
+            ? <video src={m.extra.mediaUrl} controls preload="metadata" className="mb-1 max-h-72 w-full rounded-md bg-black" />
+            : <img src={m.extra.mediaUrl} alt="Photo sent to the customer" loading="lazy" className="mb-1 max-h-72 w-full rounded-md object-cover" />
+        )}
+        {(m.body || !m.extra?.mediaUrl) && <p className="whitespace-pre-wrap break-words">{m.body || <i className="text-muted">({m.type} message)</i>}</p>}
         {m.extra?.options && m.extra.options.length > 0 && (
           <div className="-mx-2.5 mt-2 border-t border-black/10 pt-1.5 text-center text-sm font-semibold text-[#1F7A9C]">
             {m.type === 'list' ? <span><Icon name="list" className="mr-1 inline h-4 w-4 align-[-3px]" />{m.extra.button}</span> : m.extra.options.join(' · ')}

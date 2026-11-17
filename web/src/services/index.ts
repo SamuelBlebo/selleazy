@@ -155,7 +155,28 @@ export const sendReply = (customerId: string, text: string) => call('sendReply',
 export const markChatRead = (orgId: string, waId: string) => updateDoc(customerRef(orgId, waId), { unreadCount: 0 } as never);
 export const markHandled = (orgId: string, waId: string) => updateDoc(customerRef(orgId, waId), { needsHuman: false } as never);
 export const saveCustomerNote = (orgId: string, waId: string, note: string) => updateDoc(customerRef(orgId, waId), { note, updatedAt: serverTimestamp() } as never);
-export const sendBroadcast = (message: string, customerIds: string[]) => call<unknown, { sentCount: number; failedCount: number }>('sendBroadcast', { message, customerIds });
+export interface BroadcastMedia { type: 'image' | 'video'; path: string }
+export const sendBroadcast = (message: string, customerIds: string[], media?: BroadcastMedia | null) =>
+  call<unknown, { sentCount: number; failedCount: number }>('sendBroadcast', { message, customerIds, media: media ?? null });
+
+/** WhatsApp's limits (functions/src/domain/media.ts, storage.rules). */
+export const BROADCAST_VIDEO_MAX_BYTES = 16 * 1024 * 1024;
+
+/**
+ * Uploads a promotion photo or video to the business's own folder. Photos are
+ * re-encoded to a WhatsApp-friendly JPEG first; videos must already be MP4.
+ * The server checks the file again before anything is sent.
+ */
+export async function uploadBroadcastMedia(orgId: string, file: File): Promise<BroadcastMedia> {
+  const video = file.type.startsWith('video/');
+  if (video && !['video/mp4', 'video/3gpp'].includes(file.type)) throw new Error('Use an MP4 video. Most phones record MP4.');
+  if (video && file.size > BROADCAST_VIDEO_MAX_BYTES) throw new Error('Videos must be under 16 MB. Trim it or send a shorter clip.');
+  const blob = video ? file : await toWhatsappJpeg(file);
+  const ext = video ? (file.type === 'video/3gpp' ? '3gp' : 'mp4') : blob === file ? (file.name.split('.').pop() ?? 'jpg') : 'jpg';
+  const path = `organizations/${orgId}/broadcasts/${Date.now()}-promo.${ext}`;
+  await uploadBytes(storageRef(storage, path), blob, { contentType: video ? file.type : blob.type || file.type });
+  return { type: video ? 'video' : 'image', path };
+}
 
 /* -------------------------------- WhatsApp ------------------------------- */
 

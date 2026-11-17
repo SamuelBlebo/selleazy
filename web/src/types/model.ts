@@ -168,7 +168,8 @@ export interface Message {
   by: 'customer' | 'bot' | 'staff' | 'merchant_phone';
   type: string;
   body: string | null;
-  extra?: { button?: string; options?: string[] } | null;
+  /** mediaUrl: the photo or video of an image / video message (promotions). */
+  extra?: { button?: string; options?: string[]; mediaUrl?: string } | null;
   failed?: boolean;
   createdAt: Timestamp | null;
 }

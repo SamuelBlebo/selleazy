@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { limit, orderBy, query, where } from 'firebase/firestore';
 import { PayBadge, StatusBadge, itemsText } from '@/components/orders/OrderBits';
@@ -9,7 +9,7 @@ import { useCollection } from '@/hooks/useCollection';
 import { useOrg, usePermission } from '@/hooks/usePermission';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/useToast';
-import { saveCustomerNote, sendBroadcast } from '@/services';
+import { BROADCAST_VIDEO_MAX_BYTES, saveCustomerNote, sendBroadcast, uploadBroadcastMedia } from '@/services';
 import type { Customer, WithId } from '@/types';
 import { toMessage } from '@/utils/errors';
 import { money, formatPhone, shortWhen } from '@/utils/format';
@@ -122,6 +122,16 @@ function BroadcastDrawer({ open, customers, onClose }: { open: boolean; customer
   const [audience, setAudience] = useState<'all' | 'regulars' | 'lapsed'>('all');
   const [message, setMessage] = useState(`Hello from ${org.name}! `);
   const [busy, setBusy] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  const isVideo = file?.type.startsWith('video/') ?? false;
+  const pick = (f: File | null) => {
+    if (!f) return;
+    if (f.type.startsWith('video/') && f.size > BROADCAST_VIDEO_MAX_BYTES) return toast.error('Videos must be under 16 MB. Send a shorter clip.');
+    if (!f.type.startsWith('image/') && !f.type.startsWith('video/')) return toast.error('Attach a photo or a video.');
+    setFile(f);
+  };
   const month = Date.now() - 30 * 86400000;
   const groups = {
     all: customers,
@@ -135,10 +145,12 @@ function BroadcastDrawer({ open, customers, onClose }: { open: boolean; customer
       open={open}
       title="Send a promotion"
       onClose={onClose}
-      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button disabled={!allowed || !target.length || message.trim().length < 5} loading={busy} onClick={async () => {
+      footer={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button disabled={!allowed || !target.length || (message.trim().length < 5 && !file)} loading={busy} onClick={async () => {
         setBusy(true);
         try {
-          const r = await sendBroadcast(message.trim(), target.map((c) => c.id));
+          const media = file ? await uploadBroadcastMedia(org.id, file) : null;
+          const r = await sendBroadcast(message.trim(), target.map((c) => c.id), media);
+          setFile(null);
           toast.success(`Sent to ${r.sentCount}. ${r.failedCount ? `${r.failedCount} could not be reached.` : ''}`);
           onClose();
         } catch (e) {
@@ -155,7 +167,25 @@ function BroadcastDrawer({ open, customers, onClose }: { open: boolean; customer
           <option value="regulars">Regulars, 5+ orders ({groups.regulars.length})</option>
           <option value="lapsed">Haven't ordered in 30 days ({groups.lapsed.length})</option>
         </Select>
-        <Textarea label="Message" rows={5} value={message} onChange={(e) => setMessage(e.target.value)} />
+        <Textarea label={file ? 'Caption' : 'Message'} rows={5} value={message} onChange={(e) => setMessage(e.target.value)} />
+        <div>
+          <span className="block text-sm font-medium">Photo or video (optional)</span>
+          {file && preview ? (
+            <div className="mt-1.5 overflow-hidden rounded-xl border border-line bg-raised">
+              {isVideo ? <video src={preview} controls className="max-h-64 w-full bg-black" /> : <img src={preview} alt="Attached to the promotion" className="max-h-64 w-full object-contain" />}
+              <div className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+                <span className="truncate text-muted">{file.name} · {(file.size / (1024 * 1024)).toFixed(1)} MB</span>
+                <Button size="sm" variant="ghost" onClick={() => setFile(null)}>Remove</Button>
+              </div>
+            </div>
+          ) : (
+            <label className="mt-1.5 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-line2 px-3 py-4 text-sm font-semibold text-brand-ink hover:bg-raised">
+              <Icon name="image" className="h-5 w-5" /> Attach a photo or video
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,video/mp4,video/3gpp" className="sr-only" onChange={(e) => { pick(e.target.files?.[0] ?? null); e.target.value = ''; }} />
+            </label>
+          )}
+          <p className="mt-1 text-xs text-muted">Photos up to 5 MB, MP4 videos up to 16 MB. Your message goes out as the caption.</p>
+        </div>
         <p className="text-sm text-muted">
           WhatsApp only delivers free text to customers who messaged you in the last 24 hours. Reaching everyone else needs a Meta-approved promotion template. Up to 300 people, 3 sends an hour.
         </p>

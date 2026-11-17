@@ -15,6 +15,16 @@ service firebase.storage {
       return memberOf(orgId) && profile().role in ['owner', 'manager'];
     }
 
+    // Promotion photos and videos (functions/src/domain/media.ts has the same limits).
+    // Owners and managers: the roles that may send promotions.
+    match /organizations/{orgId}/broadcasts/{file} {
+      allow read: if memberOf(orgId);
+      allow write: if canEditCatalog(orgId)
+        && (request.resource == null
+          || (request.resource.contentType.matches('image/(jpeg|png)') && request.resource.size < 5 * 1024 * 1024)
+          || (request.resource.contentType.matches('video/(mp4|3gpp)') && request.resource.size < 16 * 1024 * 1024));
+    }
+
     match /organizations/{orgId}/{allPaths=**} {
       allow read: if memberOf(orgId);
       allow write: if canEditCatalog(orgId)

@@ -223,3 +223,22 @@ test('coexistence: bot pauses after the owner replies from the phone', () => {
   assert.ok(!isBotPaused(pauseUntil(now, 30), now + 31 * 60000));
   assert.ok(!isBotPaused(null, now));
 });
+
+/* --------------------------- Promotion photos/videos ---------------------- */
+
+const { mediaProblem } = require('../lib/domain/media.js');
+
+test('promotion media: only this business\'s files, WhatsApp types and sizes', () => {
+  const img = { type: 'image', path: 'organizations/o1/broadcasts/1-promo.jpg' };
+  const vid = { type: 'video', path: 'organizations/o1/broadcasts/2-promo.mp4' };
+  assert.equal(mediaProblem('o1', img, { contentType: 'image/jpeg', size: 300_000 }), null);
+  assert.equal(mediaProblem('o1', vid, { contentType: 'video/mp4', size: 10 * 1024 * 1024 }), null);
+  assert.match(mediaProblem('o2', img, { contentType: 'image/jpeg', size: 1 }), /does not belong/, 'another business\'s file');
+  assert.match(mediaProblem('o1', { ...img, path: 'organizations/o1/broadcasts/../../o2/items/x.jpg' }, { contentType: 'image/jpeg', size: 1 }), /does not belong/);
+  assert.match(mediaProblem('o1', { ...img, path: 'organizations/o1/items/x.jpg' }, { contentType: 'image/jpeg', size: 1 }), /does not belong/, 'outside the promotions folder');
+  assert.match(mediaProblem('o1', img, null), /did not finish uploading/);
+  assert.match(mediaProblem('o1', img, { contentType: 'image/heic', size: 1 }), /JPEG or PNG/);
+  assert.match(mediaProblem('o1', vid, { contentType: 'video/quicktime', size: 1 }), /MP4/);
+  assert.match(mediaProblem('o1', img, { contentType: 'image/png', size: 6 * 1024 * 1024 }), /5 MB/);
+  assert.match(mediaProblem('o1', vid, { contentType: 'video/mp4', size: 17 * 1024 * 1024 }), /16 MB/);
+});

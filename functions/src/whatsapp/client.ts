@@ -109,6 +109,10 @@ export const wa = {
       },
     }),
 
+  /** A photo or video with an optional caption. `link` must be publicly fetchable by Meta. */
+  media: (creds: WhatsappCredentials, to: string, o: { type: 'image' | 'video'; link: string; caption?: string }) =>
+    send(creds, { to, type: o.type, [o.type]: { link: o.link, ...(o.caption ? { caption: truncate(o.caption, 1024) } : {}) } }),
+
   markRead: (creds: WhatsappCredentials, messageId: string) => send(creds, { status: 'read', message_id: messageId }),
 };
 
@@ -137,6 +141,10 @@ export class Outbox {
 
   async buttons(o: { body: string; buttons: Array<{ id: string; title: string }>; imageUrl?: string }) {
     return this.log(await wa.buttons(this.creds, this.waId, o), 'buttons', o.body, { options: o.buttons.map((b) => b.title) });
+  }
+
+  async media(o: { type: 'image' | 'video'; link: string; caption?: string }) {
+    return this.log(await wa.media(this.creds, this.waId, o), o.type, o.caption ?? '', { mediaUrl: o.link });
   }
 
   async carousel(o: { body: string; cards: CarouselCard[] }) {
