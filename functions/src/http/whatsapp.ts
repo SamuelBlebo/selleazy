@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { GRAPH_VERSION, META_APP_ID, META_APP_SECRET } from '../config';
 import { db, loadCredentialsForOrg, orgRef, toWaId, whatsappAccountRef } from '../tenant';
 import { Outbox, wa } from '../whatsapp/client';
+import type { WhatsappMode } from '../whatsapp/coexistence';
 import { parse, requireMember } from './guards';
 
 /**
@@ -27,7 +28,35 @@ async function probeNumber(phoneNumberId: string, accessToken: string) {
   return { displayPhone: body.display_phone_number, verifiedName: body.verified_name ?? null, qualityRating: body.quality_rating ?? null };
 }
 
-async function claimNumber(orgId: string, input: { phoneNumberId: string; businessAccountId: string; accessToken: string }) {
+/**
+ * Coexistence signup may hand back only the WABA. A WhatsApp Business app
+ * account has exactly one number, so look it up.
+ */
+async function onlyNumberOf(businessAccountId: string, accessToken: string): Promise<string> {
+  const res = await fetch(graph(`${businessAccountId}/phone_numbers?fields=id`), { headers: { Authorization: `Bearer ${accessToken}` } });
+  const ids = res.ok ? ((await res.json()) as { data?: Array<{ id: string }> }).data?.map((d) => d.id) ?? [] : [];
+  if (ids.length !== 1) throw new HttpsError('invalid-argument', 'Meta did not tell us which number you picked. Try connecting again.');
+  return ids[0];
+}
+
+/**
+ * Asks Meta to send the phone app's contacts and recent chats (they arrive on
+ * the webhook as smb_app_state_sync and history). Meta only allows this in
+ * the first 24 hours after connecting, and the merchant must agree in the app.
+ * A failure is logged, not shown: ordering works without the old chats.
+ */
+async function requestPhoneAppSync(phoneNumberId: string, accessToken: string) {
+  for (const syncType of ['smb_app_state_sync', 'history']) {
+    const res = await fetch(graph(`${phoneNumberId}/smb_app_data`), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messaging_product: 'whatsapp', sync_type: syncType }),
+    }).catch((err: unknown) => ({ ok: false, status: 0, text: () => Promise.resolve(String(err)) }));
+    if (!res.ok) logger.warn('Phone app sync request failed', { phoneNumberId, syncType, status: res.status, body: await res.text() });
+  }
+}
+
+async function claimNumber(orgId: string, input: { phoneNumberId: string; businessAccountId: string; accessToken: string; mode: WhatsappMode }) {
   const probe = await probeNumber(input.phoneNumberId, input.accessToken);
   await db().runTransaction(async (tx) => {
     const account = whatsappAccountRef(input.phoneNumberId);
@@ -41,6 +70,7 @@ async function claimNumber(orgId: string, input: { phoneNumberId: string; busine
       businessAccountId: input.businessAccountId,
       displayPhone: probe.displayPhone,
       accessToken: input.accessToken,
+      mode: input.mode,
       webhookStatus: 'pending',
       connectedAt: FieldValue.serverTimestamp(),
     });
@@ -52,6 +82,7 @@ async function claimNumber(orgId: string, input: { phoneNumberId: string; busine
         displayPhoneNumber: probe.displayPhone,
         verifiedName: probe.verifiedName,
         qualityRating: probe.qualityRating,
+        mode: input.mode,
         connectedAt: FieldValue.serverTimestamp(),
       },
       updatedAt: FieldValue.serverTimestamp(),
@@ -63,7 +94,13 @@ async function claimNumber(orgId: string, input: { phoneNumberId: string; busine
 export const completeWhatsappSignup = onCall({ secrets: [META_APP_SECRET] }, async (request) => {
   const { orgId } = await requireMember(request.auth, 'whatsapp.manage');
   const input = parse(
-    z.object({ code: z.string().min(10), phoneNumberId: z.string().min(5).max(64), businessAccountId: z.string().min(5).max(64) }),
+    z.object({
+      code: z.string().min(10),
+      // Optional only for coexistence, where Meta may send just the WABA.
+      phoneNumberId: z.string().min(5).max(64).optional(),
+      businessAccountId: z.string().min(5).max(64),
+      mode: z.enum(['coexistence', 'cloud']).default('cloud'),
+    }),
     request.data,
     'Check the values from the signup popup.',
   );
@@ -85,8 +122,12 @@ export const completeWhatsappSignup = onCall({ secrets: [META_APP_SECRET] }, asy
     throw new HttpsError('internal', "Connected, but Meta wouldn't send us message notifications. Try again.");
   }
 
-  const probe = await claimNumber(orgId, { ...input, accessToken: token });
-  return { ok: true as const, displayPhone: probe.displayPhone };
+  // Coexistence numbers are already registered by the WhatsApp Business app: never call /register (and no PIN).
+  if (!input.phoneNumberId && input.mode !== 'coexistence') throw new HttpsError('invalid-argument', 'Check the values from the signup popup.');
+  const phoneNumberId = input.phoneNumberId ?? (await onlyNumberOf(input.businessAccountId, token));
+  const probe = await claimNumber(orgId, { ...input, phoneNumberId, accessToken: token });
+  if (input.mode === 'coexistence') await requestPhoneAppSync(phoneNumberId, token);
+  return { ok: true as const, displayPhone: probe.displayPhone, mode: input.mode };
 });
 
 /** Support fallback: paste an existing permanent token. Not shown in the merchant UI. */
@@ -96,7 +137,7 @@ export const connectWhatsappManual = onCall(async (request) => {
     z.object({ phoneNumberId: z.string().min(5).max(64), businessAccountId: z.string().min(5).max(64), accessToken: z.string().min(20).max(600) }),
     request.data,
   );
-  const probe = await claimNumber(orgId, input);
+  const probe = await claimNumber(orgId, { ...input, mode: 'cloud' });
   return { ok: true as const, displayPhone: probe.displayPhone };
 });
 
@@ -111,7 +152,7 @@ export const disconnectWhatsapp = onCall(async (request) => {
   const batch = db().batch();
   if (creds) batch.delete(whatsappAccountRef(creds.phoneNumberId));
   batch.update(orgRef(orgId), {
-    whatsapp: { connected: false, phoneNumberId: null, wabaId: null, displayPhoneNumber: null, verifiedName: null, qualityRating: null, connectedAt: null },
+    whatsapp: { connected: false, phoneNumberId: null, wabaId: null, displayPhoneNumber: null, verifiedName: null, qualityRating: null, mode: null, connectedAt: null },
     updatedAt: FieldValue.serverTimestamp(),
   });
   await batch.commit();

@@ -54,6 +54,8 @@ export interface WhatsAppMirror {
   displayPhoneNumber: string | null;
   verifiedName: string | null;
   qualityRating: string | null;
+  /** coexistence = the number also stays in the WhatsApp Business app. Missing on older connections = cloud. */
+  mode?: 'coexistence' | 'cloud' | null;
   connectedAt: Timestamp | null;
 }
 
@@ -68,7 +70,8 @@ export interface Organization {
   deliveryFeeMinor: number;
   features: OrgFeatures;
   ownerUid: string;
-  bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[]; hours?: OpeningHours };
+  /** phoneReplyPauseMinutes: how long the bot stays quiet after the owner replies from the phone app (Coexistence). 0 = off, missing = 30. */
+  bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[]; hours?: OpeningHours; phoneReplyPauseMinutes?: number };
   momo: { mtn: string | null; telecel: string | null; airteltigo: string | null; accountName: string | null };
   subscription: Subscription;
   whatsapp: WhatsAppMirror;
@@ -157,7 +160,8 @@ export interface Customer {
 
 export interface Message {
   direction: 'in' | 'out';
-  by: 'customer' | 'bot' | 'staff';
+  /** merchant_phone = typed in the WhatsApp Business app on a Coexistence number. */
+  by: 'customer' | 'bot' | 'staff' | 'merchant_phone';
   type: string;
   body: string | null;
   extra?: { button?: string; options?: string[] } | null;

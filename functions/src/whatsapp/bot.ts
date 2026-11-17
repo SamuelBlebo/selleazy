@@ -10,6 +10,7 @@ import { placeOrder } from '../services/orders';
 import { submitPayment } from '../services/payments';
 import { customerRef, draftOrdersRef, itemsRef, messagesRef, ordersRef, orgRef, sessionsRef } from '../tenant';
 import { Outbox } from './client';
+import { isBotPaused } from './coexistence';
 import { FULFILMENT_LABEL, formatDuration, formatWhen, linesSummary, paymentInstructions, vocabulary } from './copy';
 
 /**
@@ -152,6 +153,8 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
   let patch: Partial<Session> = {};
   try {
     if (org.suspended) await ctx.out.text('This shop is not taking orders on WhatsApp right now. Please check back later.');
+    // The owner is replying from the WhatsApp Business app (Coexistence): stay out of their way.
+    else if (isBotPaused((custSnap.get('botPausedUntil') as Timestamp | null | undefined)?.toMillis(), Date.now())) patch = {};
     else if (!org.menuBot) patch = await handoff(ctx, true);
     else patch = await route(ctx, message, body);
   } catch (err) {

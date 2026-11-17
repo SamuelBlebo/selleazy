@@ -11,13 +11,20 @@ import { toMessage } from '@/utils/errors';
  * ids the merchant picked (a postMessage). When both are in, the code goes to
  * the completeWhatsappSignup Cloud Function, which stores the token where no
  * browser can read it.
+ *
+ * mode "coexistence" is Meta's "Onboarding WhatsApp Business app users" flow:
+ * the merchant keeps the number in the WhatsApp Business app on their phone.
  */
 export const embeddedSignupConfigured = Boolean(env.meta.appId && env.meta.configId);
 
+export type ConnectMode = 'coexistence' | 'cloud';
+
 interface Payload {
-  phoneNumberId: string;
+  phoneNumberId?: string;
   businessAccountId: string;
 }
+
+const FINISH_EVENTS = ['FINISH', 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING'];
 
 declare global {
   interface Window {
@@ -50,7 +57,7 @@ function loadSdk(appId: string): Promise<void> {
   return sdk;
 }
 
-export function WhatsAppConnectButton({ onConnected }: { onConnected?: () => void }) {
+export function WhatsAppConnectButton({ mode = 'cloud', onConnected }: { mode?: ConnectMode; onConnected?: () => void }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const code = useRef<string | null>(null);
@@ -58,7 +65,7 @@ export function WhatsAppConnectButton({ onConnected }: { onConnected?: () => voi
 
   const finish = async () => {
     if (!code.current || !payload.current) return;
-    const input = { code: code.current, ...payload.current };
+    const input = { code: code.current, ...payload.current, mode };
     code.current = null;
     payload.current = null;
     try {
@@ -77,7 +84,9 @@ export function WhatsAppConnectButton({ onConnected }: { onConnected?: () => voi
       if (event.origin !== 'https://www.facebook.com' && event.origin !== 'https://web.facebook.com') return;
       try {
         const data = JSON.parse(event.data as string) as { type?: string; event?: string; data?: { phone_number_id?: string; waba_id?: string } };
-        if (data.type !== 'WA_EMBEDDED_SIGNUP' || data.event !== 'FINISH' || !data.data?.phone_number_id || !data.data.waba_id) return;
+        if (data.type !== 'WA_EMBEDDED_SIGNUP' || !FINISH_EVENTS.includes(data.event ?? '') || !data.data?.waba_id) return;
+        // A coexistence finish may carry only the WABA; the server then looks the number up.
+        if (!data.data.phone_number_id && mode !== 'coexistence') return;
         payload.current = { phoneNumberId: data.data.phone_number_id, businessAccountId: data.data.waba_id };
         void finish();
       } catch {
@@ -102,7 +111,15 @@ export function WhatsAppConnectButton({ onConnected }: { onConnected?: () => voi
           code.current = r.authResponse.code;
           void finish();
         },
-        { config_id: env.meta.configId, response_type: 'code', override_default_response_type: true, extras: { feature: 'whatsapp_embedded_signup', sessionInfoVersion: '3' } },
+        {
+          config_id: env.meta.configId,
+          response_type: 'code',
+          override_default_response_type: true,
+          extras:
+            mode === 'coexistence'
+              ? { setup: {}, featureType: 'whatsapp_business_app_onboarding', sessionInfoVersion: '3' }
+              : { feature: 'whatsapp_embedded_signup', sessionInfoVersion: '3' },
+        },
       );
     } catch (e) {
       toast.error(toMessage(e));

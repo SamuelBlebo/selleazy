@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { NavLink, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { WhatsAppConnectButton } from '@/components/settings/WhatsAppConnect';
+import { WhatsAppConnectButton, type ConnectMode } from '@/components/settings/WhatsAppConnect';
 import { Badge, Button, Card, CardBody, CardHeader, Icon, Input, Select, SettingRow, Switch, Textarea } from '@/components/ui';
 import { BUSINESS_TYPES, CATEGORIES, suggestedFaqs } from '@/config/business';
 import { ROLE_LABEL, ROLE_PERMISSIONS, type Permission } from '@/config/permissions';
@@ -147,7 +147,11 @@ function WhatsAppTab() {
   const { busy, save } = useSaver();
   const [confirm, setConfirm] = useState(false);
   const [to, setTo] = useState('');
+  const [mode, setMode] = useState<ConnectMode>('coexistence');
   const wa = org.whatsapp;
+  const shared = wa.mode === 'coexistence';
+  const pause = org.bot.phoneReplyPauseMinutes ?? 30;
+  const setPause = (minutes: number) => void save(() => updateSettings(org.id, { bot: { ...org.bot, phoneReplyPauseMinutes: minutes } }));
   return (
     <Card>
       <CardHeader title="WhatsApp Business" action={wa.connected ? <Badge tone="ok">Connected</Badge> : <Badge tone="danger">Not connected</Badge>} />
@@ -156,10 +160,25 @@ function WhatsAppTab() {
           <div className="space-y-4">
             <dl className="grid max-w-md grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
               <dt className="text-muted">Number</dt><dd className="tabular text-right">{wa.displayPhoneNumber}</dd>
+              <dt className="text-muted">Mode</dt><dd className="text-right">{shared ? 'Shared with your WhatsApp Business app' : 'SellEazy only'}</dd>
               <dt className="text-muted">Display name</dt><dd className="text-right">{wa.verifiedName ?? '—'}</dd>
               <dt className="text-muted">Quality rating</dt><dd className="text-right">{wa.qualityRating ?? 'Not rated yet'}</dd>
               <dt className="text-muted">Connected</dt><dd className="text-right">{formatDate(wa.connectedAt)}</dd>
             </dl>
+            {shared && (
+              <div>
+                <SettingRow title="Bot paused while you reply from your phone" hint="When you answer a customer in the WhatsApp Business app, the bot stays quiet in that chat so you don't talk over each other.">
+                  <Switch checked={pause > 0} label="Bot paused while you reply from your phone" onChange={(v) => setPause(v ? 30 : 0)} />
+                </SettingRow>
+                {pause > 0 && (
+                  <div className="w-56">
+                    <Select label="Pause for" value={String(pause)} onChange={(e) => setPause(Number(e.target.value))}>
+                      {[15, 30, 60, 120].map((m) => <option key={m} value={m}>{m < 60 ? `${m} minutes` : `${m / 60} hour${m > 60 ? 's' : ''}`}</option>)}
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap items-end gap-2">
               <div className="w-56"><Input label="Send a test message to" inputMode="tel" placeholder="024 000 0000" value={to} onChange={(e) => setTo(e.target.value)} /></div>
               <Button variant="secondary" loading={busy} disabled={to.replace(/\D/g, '').length < 9} onClick={() => void save(() => sendTestMessage(to), 'Test sent. Check that phone.')}>Send test</Button>
@@ -176,14 +195,32 @@ function WhatsAppTab() {
           </div>
         ) : (
           <div className="max-w-md space-y-4">
-            <p>Use the WhatsApp Business number your customers already message. You'll sign in with Facebook. SellEazy never sees your password.</p>
+            <fieldset className="space-y-2">
+              <legend className="mb-1 font-semibold">Which number?</legend>
+              {([
+                ['coexistence', 'Use my current WhatsApp Business number (recommended)', 'You keep using the WhatsApp Business app on your phone. Your chats and contacts come with you.'],
+                ['cloud', 'Use a new number', "A number that isn't on WhatsApp yet. It works only through SellEazy, not the phone app."],
+              ] as const).map(([value, title, hint]) => (
+                <label key={value} className={cn('flex cursor-pointer gap-3 rounded-lg border p-3', mode === value ? 'border-ok bg-ok-soft' : 'border-line2')}>
+                  <input type="radio" name="wa-mode" className="mt-1" checked={mode === value} onChange={() => setMode(value)} />
+                  <span><span className="block font-medium">{title}</span><span className="block text-sm text-muted">{hint}</span></span>
+                </label>
+              ))}
+            </fieldset>
             <ol className="list-decimal space-y-1 pl-5 text-sm">
               <li>Log in with the Facebook account that manages your business.</li>
-              <li>Pick your business and WhatsApp number (or add one).</li>
+              {mode === 'coexistence' ? (
+                <>
+                  <li>Enter your WhatsApp Business number, then scan the QR code with the WhatsApp Business app (Settings → Linked devices).</li>
+                  <li>Agree to share your chats so they show up in SellEazy.</li>
+                </>
+              ) : (
+                <li>Pick your business and add your new number.</li>
+              )}
               <li>Done. SellEazy starts answering with your catalogue.</li>
             </ol>
-            <WhatsAppConnectButton />
-            <p className="text-xs text-muted">A number connected to SellEazy can't be used in the WhatsApp Business phone app at the same time.</p>
+            <WhatsAppConnectButton mode={mode} />
+            <p className="text-xs text-muted">You'll sign in with Facebook. SellEazy never sees your password.</p>
           </div>
         )}
       </CardBody>

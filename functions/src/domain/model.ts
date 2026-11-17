@@ -114,5 +114,7 @@ export interface WhatsappCredentials {
 
 export interface WhatsappAccount extends WhatsappCredentials {
   organizationId: string;
+  /** coexistence = the number stays in the WhatsApp Business app too. Missing on older accounts = cloud. */
+  mode?: 'coexistence' | 'cloud';
   webhookStatus: 'pending' | 'verified' | 'disconnected';
 }

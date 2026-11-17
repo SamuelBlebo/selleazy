@@ -4,19 +4,15 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onRequest } from 'firebase-functions/v2/https';
 import { META_APP_SECRET, WHATSAPP_VERIFY_TOKEN } from '../config';
 import { loadWhatsappAccount, webhookEventRef, whatsappAccountRef } from '../tenant';
-import { handleInbound, type InboundMessage } from './bot';
+import { handleInbound } from './bot';
 import { wa } from './client';
+import { tasksFromChange, type ChangeValue, type WebhookTask } from './coexistence';
+import { importContact, importHistory, recordEcho } from './phoneApp';
 import { verifyMetaSignature } from './signature';
 
 interface WebhookBody {
   entry?: Array<{
-    changes?: Array<{
-      value?: {
-        metadata?: { phone_number_id?: string };
-        messages?: InboundMessage[];
-        contacts?: Array<{ profile?: { name?: string } }>;
-      };
-    }>;
+    changes?: Array<{ field?: string; value?: ChangeValue }>;
   }>;
 }
 
@@ -24,7 +20,9 @@ interface WebhookBody {
  * One webhook URL for every merchant on the platform (configure it once in
  * the Meta App). It only verifies and enqueues: each inbound message becomes
  * webhookEvents/{waMessageId}, created with create() so a Meta retry of the
- * same message is a no-op. Meta gets its 200 in milliseconds; the bot runs in
+ * same message is a no-op. Coexistence numbers also send the owner's phone
+ * replies, old chats and contacts (coexistence.ts); those get ids derived
+ * from their content. Meta gets its 200 in milliseconds; the work runs in
  * processWhatsappEvent below.
  */
 export const whatsappWebhook = onRequest({ secrets: [META_APP_SECRET, WHATSAPP_VERIFY_TOKEN], minInstances: 0 }, async (req, res) => {
@@ -52,15 +50,10 @@ export const whatsappWebhook = onRequest({ secrets: [META_APP_SECRET, WHATSAPP_V
       const value = change.value;
       const phoneNumberId = value?.metadata?.phone_number_id;
       if (!phoneNumberId) continue;
-      for (const message of value?.messages ?? []) {
+      for (const { id, ...task } of tasksFromChange(change.field, value)) {
         writes.push(
-          webhookEventRef(message.id)
-            .create({
-              phoneNumberId,
-              message,
-              profileName: value?.contacts?.[0]?.profile?.name ?? '',
-              receivedAt: Timestamp.now(),
-            })
+          webhookEventRef(id)
+            .create({ phoneNumberId, ...task, receivedAt: Timestamp.now() })
             .catch((err: { code?: number }) => {
               if (err.code !== 6) throw err; // 6 = ALREADY_EXISTS: a retry we already queued.
             }),
@@ -88,8 +81,22 @@ export const processWhatsappEvent = onDocumentCreated({ document: 'webhookEvents
   if (account.webhookStatus !== 'verified') {
     await whatsappAccountRef(account.phoneNumberId).update({ webhookStatus: 'verified' });
   }
-  const message = data.message as InboundMessage;
-  await wa.markRead(account, message.id);
-  await handleInbound(account, message, (data.profileName as string) ?? '');
+  // Older events have no kind: they are all customer messages.
+  const task = { kind: 'message', ...data } as WebhookTask;
+  switch (task.kind) {
+    case 'message':
+      await wa.markRead(account, task.message.id);
+      await handleInbound(account, task.message, task.profileName ?? '');
+      break;
+    case 'echo': // The owner replied from the WhatsApp Business app. The bot never answers these.
+      await recordEcho(account, task.message);
+      break;
+    case 'history':
+      await importHistory(account, task.thread);
+      break;
+    case 'contact':
+      await importContact(account, task.contact);
+      break;
+  }
   await event.data?.ref.update({ processedAt: Timestamp.now(), organizationId: account.organizationId });
 });

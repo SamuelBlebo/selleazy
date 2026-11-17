@@ -159,7 +159,7 @@ export const sendBroadcast = (message: string, customerIds: string[]) => call<un
 
 /* -------------------------------- WhatsApp ------------------------------- */
 
-export const completeWhatsappSignup = (input: { code: string; phoneNumberId: string; businessAccountId: string }) =>
+export const completeWhatsappSignup = (input: { code: string; phoneNumberId?: string; businessAccountId: string; mode: 'coexistence' | 'cloud' }) =>
   call<typeof input, { displayPhone: string }>('completeWhatsappSignup', input);
 export const disconnectWhatsapp = () => call('disconnectWhatsapp');
 export const sendTestMessage = (to: string) => call('sendTestMessage', { to });

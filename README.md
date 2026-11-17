@@ -115,10 +115,28 @@ Project `kasa-dp-prod`, live at https://selleazy.web.app (the same app also answ
 ## Connect WhatsApp (one-time, platform owner)
 
 1. [developers.facebook.com](https://developers.facebook.com/apps) → Create app (Business) → add **WhatsApp**.
-2. WhatsApp → Configuration → Webhook: callback URL `https://europe-west1-<project-id>.cloudfunctions.net/whatsappWebhook`, verify token = your `WHATSAPP_VERIFY_TOKEN`, subscribe to **messages**.
+2. WhatsApp → Configuration → Webhook: callback URL `https://europe-west1-<project-id>.cloudfunctions.net/whatsappWebhook`, verify token = your `WHATSAPP_VERIFY_TOKEN`, subscribe to **messages**, **smb_message_echoes**, **history** and **smb_app_state_sync** (the last three are for Coexistence, below).
 3. Facebook Login for Business → Configurations → create an **Embedded Signup** configuration (WhatsApp). Put the App ID and Configuration ID in the web env and `META_APP_ID` in `functions\.env`.
-4. Start **Business Verification** in Meta Business Manager early; it takes days and is needed before outside merchants can connect.
+4. Start **Business Verification** in Meta Business Manager early; it takes days. Business Verification **and Tech Provider** status are needed before outside merchants can connect.
 5. Each merchant then clicks Settings → WhatsApp → **Continue with Facebook**. The token is stored only in `whatsappAccounts/`, which no browser can read.
+
+### Keep the WhatsApp Business app number (Coexistence)
+
+Most merchants already sell from the WhatsApp Business app. Coexistence connects that same number to SellEazy while they keep using the app on their phone.
+
+Meta app settings:
+- Your Embedded Signup configuration must allow **WhatsApp Business app onboarding** (Coexistence). The web app launches it with `featureType: "whatsapp_business_app_onboarding"`.
+- Subscribe the webhook fields above (`smb_message_echoes`, `history`, `smb_app_state_sync`).
+
+Merchant steps (Settings → WhatsApp):
+1. Choose **Use my current WhatsApp Business number (recommended)** → Continue with Facebook.
+2. Enter the number, then scan the QR code shown in the popup with the WhatsApp Business app (Settings → Linked devices).
+3. Agree to share chat history. SellEazy then imports recent chats and saved contacts (Meta allows this only in the first 24 hours).
+
+What SellEazy does:
+- `completeWhatsappSignup` stores `mode: 'coexistence'` on `whatsappAccounts/{phoneNumberId}`. It never calls `/register` (no PIN); the number is already registered by the app. It subscribes the app to the WABA and asks Meta for the contacts and history sync (`/{phone-number-id}/smb_app_data`).
+- Replies the owner types in the phone app arrive as `smb_message_echoes`. They show in Chats as "From your phone", the bot never answers them, and the bot stays quiet in that chat for 30 minutes (Settings → WhatsApp: on/off and length).
+- History and contacts are saved under each message's WhatsApp id, so a repeated import changes nothing.
 
 ### Link a number without Embedded Signup (your own number, Meta's test number)
 

@@ -153,3 +153,73 @@ test('opening hours: open, closed, overnight, next opening, hours question', asy
     assert.equal(r.kind === 'FAQ' && r.topic, 'hours', q);
   }
 });
+
+/* ------------------------------ Coexistence ------------------------------- */
+
+const { tasksFromChange, phoneMessageRecord, pauseUntil, isBotPaused } = require('../lib/whatsapp/coexistence.js');
+
+const meta = { phone_number_id: 'PN1' };
+const echoValue = {
+  metadata: meta,
+  message_echoes: [{ id: 'wamid.E1', from: '233200000000', to: '233244118802', timestamp: '1763380000', type: 'text', text: { body: 'Your food is on the way' } }],
+};
+
+test('coexistence: echoes from the phone app never become bot messages', () => {
+  const tasks = tasksFromChange('smb_message_echoes', echoValue);
+  assert.equal(tasks.length, 1);
+  assert.equal(tasks[0].kind, 'echo');
+  assert.ok(!tasks.some((t) => t.kind === 'message'), 'only kind "message" reaches the bot');
+  const r = phoneMessageRecord(tasks[0].message, '233244118802');
+  assert.deepEqual([r.direction, r.by, r.body], ['out', 'merchant_phone', 'Your food is on the way']);
+  // An echo payload with a messages array too is still not routed to the bot.
+  assert.ok(tasksFromChange('smb_message_echoes', { ...echoValue, messages: [{ id: 'x', from: '1', type: 'text' }] }).every((t) => t.kind === 'echo'));
+});
+
+test('coexistence: customer messages still reach the bot, unknown fields are ignored', () => {
+  const v = { metadata: meta, contacts: [{ profile: { name: 'Ama' } }], messages: [{ id: 'wamid.M1', from: '233244118802', type: 'text', text: { body: 'hi' } }] };
+  assert.deepEqual(tasksFromChange('messages', v).map((t) => [t.id, t.kind, t.profileName]), [['wamid.M1', 'message', 'Ama']]);
+  assert.deepEqual(tasksFromChange(undefined, v).map((t) => t.kind), ['message']);
+  assert.deepEqual(tasksFromChange('account_update', v), []);
+});
+
+test('coexistence: importing the same history twice gives the same ids (no duplicates)', () => {
+  const history = {
+    metadata: meta,
+    history: [{ threads: [{ id: '233244118802', messages: [
+      { id: 'wamid.H1', from: '233244118802', timestamp: '1763000000', type: 'text', text: { body: 'Do you deliver?' } },
+      { id: 'wamid.H2', from: '233200000000', to: '233244118802', timestamp: '1763000100', type: 'text', text: { body: 'Yes' } },
+      { id: 'wamid.H1', from: '233244118802', timestamp: '1763000000', type: 'text', text: { body: 'Do you deliver?' } },
+    ] }] }],
+  };
+  const first = tasksFromChange('history', history);
+  const again = tasksFromChange('history', structuredClone(history));
+  assert.equal(first.length, 1);
+  assert.equal(first[0].id, again[0].id, 'same event id, so create() is a no-op');
+  assert.deepEqual(first[0].thread.messages.map((m) => m.id), ['wamid.H1', 'wamid.H2'], 'repeated messages collapse');
+  // Message docs are keyed by WhatsApp id, so re-imports overwrite rather than add.
+  const recs = first[0].thread.messages.map((m) => phoneMessageRecord(m, '233244118802'));
+  assert.deepEqual(recs.map((r) => [r.waMessageId, r.direction, r.by]), [['wamid.H1', 'in', 'customer'], ['wamid.H2', 'out', 'merchant_phone']]);
+  // Message order inside the chunk doesn't change the id.
+  const reversed = structuredClone(history);
+  reversed.history[0].threads[0].messages.reverse();
+  assert.equal(tasksFromChange('history', reversed)[0].id, first[0].id);
+});
+
+test('coexistence: contacts sync adds contacts, ignores removals', () => {
+  const v = { metadata: meta, state_sync: [
+    { type: 'contact', action: 'add', contact: { full_name: 'Kofi Mensah', phone_number: '+233 24 411 8802' } },
+    { type: 'contact', action: 'remove', contact: { phone_number: '233200000001' } },
+  ] };
+  const tasks = tasksFromChange('smb_app_state_sync', v);
+  assert.deepEqual(tasks.map((t) => [t.kind, t.contact.waId, t.contact.name]), [['contact', '233244118802', 'Kofi Mensah']]);
+  assert.equal(tasks[0].id, tasksFromChange('smb_app_state_sync', v)[0].id);
+});
+
+test('coexistence: bot pauses after the owner replies from the phone', () => {
+  const now = 1_000_000;
+  assert.equal(pauseUntil(now, undefined), now + 30 * 60000, 'defaults to 30 minutes');
+  assert.equal(pauseUntil(now, 0), null, '0 switches pausing off');
+  assert.ok(isBotPaused(pauseUntil(now, 30), now + 29 * 60000));
+  assert.ok(!isBotPaused(pauseUntil(now, 30), now + 31 * 60000));
+  assert.ok(!isBotPaused(null, now));
+});

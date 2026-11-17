@@ -305,6 +305,7 @@ function Bubble({ m }: { m: WithId<Message> }) {
         <span className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-muted">
           {m.failed && <span className="text-danger">Not delivered</span>}
           {out && m.by === 'bot' && <span className="font-medium text-ok-ink">Bot ·</span>}
+          {out && m.by === 'merchant_phone' && <span className="font-medium text-ok-ink">From your phone ·</span>}
           <span className="tabular">{time(m.createdAt)}</span>
           {out && !m.failed && <Icon name="ticks" className="h-4 w-4 text-[#3B7BBF]" />}
         </span>
