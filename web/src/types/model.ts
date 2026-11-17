@@ -1,5 +1,9 @@
 import type { Currency } from '@/utils/format';
 
+/** When the shop is open; the WhatsApp bot reads it (functions/src/domain/hours.ts). Days run Sunday (0) to Saturday (6). */
+export interface DayHours { open: string; close: string }
+export interface OpeningHours { enabled: boolean; timezone: string; days: Array<DayHours | null>; ordersWhenClosed: boolean }
+
 /** A merchant's own question and answer; the WhatsApp bot replies with it (functions/src/nlu/faq.ts). */
 export interface Faq {
   q: string;
@@ -64,7 +68,7 @@ export interface Organization {
   deliveryFeeMinor: number;
   features: OrgFeatures;
   ownerUid: string;
-  bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[] };
+  bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[]; hours?: OpeningHours };
   momo: { mtn: string | null; telecel: string | null; airteltigo: string | null; accountName: string | null };
   subscription: Subscription;
   whatsapp: WhatsAppMirror;

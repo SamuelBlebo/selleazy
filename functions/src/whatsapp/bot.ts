@@ -1,5 +1,6 @@
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
+import { closedNotice, hoursText, isOpen, type OpeningHours } from '../domain/hours';
 import type { BusinessType, CatalogItem, Fulfilment, ItemKind, OrgFeatures, WhatsappAccount } from '../domain/model';
 import { formatMoney, parseAmount, type Currency } from '../domain/money';
 import { DRAFT_THRESHOLD, nlu, readWhen, type NluCatalogItem } from '../nlu';
@@ -84,6 +85,7 @@ interface Org {
   menuBot: boolean;
   freeText: boolean;
   faqs: Faq[];
+  hours: OpeningHours | null;
   momo: Record<string, string | null> | undefined;
   suspended: boolean;
 }
@@ -141,6 +143,7 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
     menuBot: o.bot?.menuEnabled !== false,
     freeText: o.bot?.freeTextEnabled !== false,
     faqs: Array.isArray(o.bot?.faqs) ? (o.bot.faqs as Faq[]) : [],
+    hours: (o.bot?.hours as OpeningHours) ?? null,
     momo: o.momo as Org['momo'],
     suspended: o.suspended === true,
   };
@@ -259,10 +262,11 @@ const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 async function greet(ctx: Ctx): Promise<Partial<Session>> {
   const items = await activeItems(ctx.orgId);
-  if (!items.length) return showCatalog(ctx, ctx.org.greeting, 0);
+  const hello = closed(ctx) ? `${ctx.org.greeting}\n\n${closedNotice(ctx.org.hours!)}` : ctx.org.greeting;
+  if (!items.length) return showCatalog(ctx, hello, 0);
   const top = [...items.filter((i) => i.featured), ...items.filter((i) => !i.featured)].slice(0, TOP_PICKS);
 
-  await ctx.out.text(ctx.org.greeting);
+  await ctx.out.text(hello);
   await pause(1200);
   const shownPhotos = await showPhotos(ctx, top, `${words(ctx).topPicks}:`);
   if (shownPhotos) await pause(2000);
@@ -278,7 +282,7 @@ async function greet(ctx: Ctx): Promise<Partial<Session>> {
 
 async function chatWithSomeone(ctx: Ctx): Promise<Partial<Session>> {
   await customerRef(ctx.orgId, ctx.waId).set({ needsHuman: true }, { merge: true });
-  await ctx.out.text(`Sure! Someone from ${ctx.org.name} will reply here shortly. Go ahead and type your message.\nTo shop anytime, reply "menu".`);
+  await ctx.out.text(`Sure! ${replyWhen(ctx)} Go ahead and type your message.\nTo shop anytime, reply "menu".`);
   return { step: 'with_human', lastHandoffAt: Date.now() };
 }
 
@@ -419,6 +423,10 @@ function fulfilmentOptions(ctx: Ctx): Fulfilment[] {
 
 async function startCheckout(ctx: Ctx): Promise<Partial<Session>> {
   if (!ctx.s.cart.length) return showCart(ctx);
+  if (closed(ctx) && !ctx.org.hours!.ordersWhenClosed) {
+    await ctx.out.text(`${closedNotice(ctx.org.hours!)}\nYour cart is saved. Reply "checkout" when we're open.`);
+    return {};
+  }
   const saved = (await customerRef(ctx.orgId, ctx.waId).get()).get('name') as string | null;
   const name = saved || ctx.profileName;
   if (!name) {
@@ -637,10 +645,13 @@ async function replyPrices(ctx: Ctx, items: Item[], itemIds: string[]): Promise<
 }
 
 /** Common questions answered from the business's settings. Anything we can't answer goes to a person. */
-async function replyFaq(ctx: Ctx, topic: 'location' | 'delivery' | 'payment'): Promise<Partial<Session>> {
+async function replyFaq(ctx: Ctx, topic: 'location' | 'delivery' | 'payment' | 'hours'): Promise<Partial<Session>> {
   const { org } = ctx;
   let answer: string | null = null;
-  if (topic === 'location' && org.area) {
+  if (topic === 'hours') {
+    if (!org.hours?.enabled) return handoff(ctx);
+    answer = `${closed(ctx) ? closedNotice(org.hours) : "Yes, we're open now."}\n\nOur hours:\n${hoursText(org.hours)}`;
+  } else if (topic === 'location' && org.area) {
     answer = `We're in ${org.area}.${org.phone ? ` Call ${org.phone} if you need directions.` : ''}`;
   } else if (topic === 'delivery') {
     const fee = org.deliveryFeeMinor ? ` The delivery fee is ${formatMoney(org.deliveryFeeMinor, org.currency)}.` : '';
@@ -726,11 +737,21 @@ async function replyOrderStatus(ctx: Ctx, number: number | null): Promise<Partia
 }
 
 /** Hands the chat to a person, without spamming the customer if they keep typing. */
+function closed(ctx: Ctx): boolean {
+  return !isOpen(ctx.org.hours);
+}
+
+function replyWhen(ctx: Ctx): string {
+  return closed(ctx)
+    ? `We're closed right now, so someone from ${ctx.org.name} will reply when we open.`
+    : `Someone from ${ctx.org.name} will reply here shortly.`;
+}
+
 async function handoff(ctx: Ctx, silent = false): Promise<Partial<Session>> {
   await customerRef(ctx.orgId, ctx.waId).set({ needsHuman: true }, { merge: true });
   const recently = ctx.s.lastHandoffAt && Date.now() - ctx.s.lastHandoffAt < 30 * 60000;
   if (!silent && !recently) {
-    await ctx.out.text(`Thanks for your message. Someone from ${ctx.org.name} will reply here shortly.\nTo order now, reply "menu".`);
+    await ctx.out.text(`Thanks for your message. ${replyWhen(ctx)}\nTo order now, reply "menu".`);
     return { lastHandoffAt: Date.now() };
   }
   return {};

@@ -13,13 +13,14 @@ import { useOrg } from '@/hooks/usePermission';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/useToast';
 import { cancelInvite, changePlan, disconnectWhatsapp, inviteMember, removeMember, sendTestMessage, updateMemberRole, updateSettings } from '@/services';
-import type { BusinessType, Faq, Role } from '@/types';
+import type { BusinessType, DayHours, Faq, OpeningHours, Role } from '@/types';
 import { cn } from '@/utils/cn';
 import { toMessage } from '@/utils/errors';
 import { money, formatDate, toMinor, currencySymbol, CURRENCIES, type Currency } from '@/utils/format';
 
 const TABS = [
   ['business', 'Business'],
+  ['hours', 'Opening hours'],
   ['faqs', 'Bot answers'],
   ['whatsapp', 'WhatsApp'],
   ['momo', 'MoMo numbers'],
@@ -31,7 +32,7 @@ export function SettingsPage() {
   usePageTitle('Settings');
   const { tab = 'business' } = useParams();
   if (!TABS.some(([id]) => id === tab)) return <Navigate to="/settings" replace />;
-  const Body = { business: BusinessTab, faqs: FaqTab, whatsapp: WhatsAppTab, momo: MomoTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
+  const Body = { business: BusinessTab, hours: HoursTab, faqs: FaqTab, whatsapp: WhatsAppTab, momo: MomoTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
   return (
     <div className="mx-auto max-w-5xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader title="Settings" />
@@ -265,11 +266,81 @@ function FaqTab() {
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-muted">Check each answer before saving. Delivery, payment, location and prices are already answered from your other settings.</p>
+            <p className="mt-2 text-xs text-muted">Check each answer before saving. Delivery, payment, location, prices and opening hours are already answered from your other settings.</p>
           </div>
         )}
         <div className="flex justify-end">
           <Button loading={busy} onClick={() => void save(() => updateSettings(org.id, { bot: { ...org.bot, faqs: clean() } }))}>Save</Button>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+const WEEK: Array<[number, string]> = [[1, 'Monday'], [2, 'Tuesday'], [3, 'Wednesday'], [4, 'Thursday'], [5, 'Friday'], [6, 'Saturday'], [0, 'Sunday']];
+const TIMEZONES: Array<[string, string]> = [
+  ['Africa/Accra', 'Ghana (GMT)'],
+  ['Africa/Lagos', 'Nigeria (GMT+1)'],
+  ['Africa/Nairobi', 'Kenya (GMT+3)'],
+  ['Africa/Johannesburg', 'South Africa (GMT+2)'],
+  ['Europe/London', 'United Kingdom'],
+  ['America/New_York', 'US Eastern'],
+];
+const DEFAULT_HOURS: OpeningHours = {
+  enabled: false,
+  timezone: 'Africa/Accra',
+  ordersWhenClosed: true,
+  days: [null, ...Array.from({ length: 6 }, (): DayHours => ({ open: '08:00', close: '20:00' }))],
+};
+
+function HoursTab() {
+  const { org } = useOrg();
+  const { busy, save } = useSaver();
+  const [h, setH] = useState<OpeningHours>(() => org.bot.hours ?? DEFAULT_HOURS);
+  const setDay = (i: number, d: DayHours | null) => setH({ ...h, days: h.days.map((x, j) => (j === i ? d : x)) });
+  const copyToAll = (d: DayHours) => setH({ ...h, days: h.days.map((x) => (x ? { ...d } : x)) });
+
+  return (
+    <Card>
+      <CardHeader title="Opening hours" description="Outside these hours the bot tells customers you're closed and when you open again. It still shows your catalogue." />
+      <CardBody className="space-y-4">
+        <SettingRow title="Use opening hours" hint="Off means the bot treats you as always open."><Switch checked={h.enabled} label="Use opening hours" onChange={(v) => setH({ ...h, enabled: v })} /></SettingRow>
+        <div className={cn('space-y-4', !h.enabled && 'pointer-events-none opacity-50')}>
+          <div className="divide-y divide-line rounded-xl border border-line">
+            {WEEK.map(([i, name]) => {
+              const d = h.days[i];
+              return (
+                <div key={i} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3.5 py-2.5">
+                  <div className="flex w-36 items-center gap-3">
+                    <Switch checked={!!d} label={`Open on ${name}`} onChange={(v) => setDay(i, v ? { open: '08:00', close: '20:00' } : null)} />
+                    <span className="font-medium">{name}</span>
+                  </div>
+                  {d ? (
+                    <div className="flex flex-1 items-center gap-2">
+                      <Input type="time" aria-label={`${name} opens`} value={d.open} onChange={(e) => setDay(i, { ...d, open: e.target.value || d.open })} />
+                      <span className="text-muted">to</span>
+                      <Input type="time" aria-label={`${name} closes`} value={d.close} onChange={(e) => setDay(i, { ...d, close: e.target.value || d.close })} />
+                      <button type="button" onClick={() => copyToAll(d)} className="shrink-0 rounded-lg px-2 py-1.5 text-xs font-semibold text-muted hover:bg-raised max-sm:hidden">Copy to all</button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted">Closed</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted">If closing time is earlier than opening time, the day runs past midnight.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Select label="Time zone" value={h.timezone} onChange={(e) => setH({ ...h, timezone: e.target.value })}>
+              {[...new Map<string, string>([[h.timezone, h.timezone], ...TIMEZONES]).entries()].map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            </Select>
+          </div>
+          <SettingRow title="Take orders while closed" hint="Customers can still check out. Off: they can browse, and the bot asks them to order when you open.">
+            <Switch checked={h.ordersWhenClosed} label="Take orders while closed" onChange={(v) => setH({ ...h, ordersWhenClosed: v })} />
+          </SettingRow>
+        </div>
+        <div className="flex justify-end">
+          <Button loading={busy} onClick={() => void save(() => updateSettings(org.id, { bot: { ...org.bot, hours: h } }))}>Save</Button>
         </div>
       </CardBody>
     </Card>

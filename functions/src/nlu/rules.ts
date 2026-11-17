@@ -27,6 +27,7 @@ const PRICE_HINTS = ['how much', 'hw much', 'price', 'cost', 'charge for'];
 const DELIVERY_HINTS = ['do you deliver', 'you deliver', 'u deliver', 'delivery fee', 'delivery charge', 'delivery cost', 'delivery price', 'is delivery', 'for delivery', 'can you deliver', 'can you bring'];
 const PAYMENT_HINTS = ['how do i pay', 'how can i pay', 'how to pay', 'how i go pay', 'payment method', 'momo number', 'account number', 'pay with', 'do you take', 'do you accept', 'can i pay'];
 const LOCATION_HINTS = ['where are you', 'where are u', 'where is your shop', 'where is the shop', 'where you dey', 'your location', 'located', 'location', 'address', 'directions', 'where can i find'];
+const HOURS_HINTS = ['are you open', 'are u open', 'r u open', 'open today', 'opening hours', 'opening time', 'working hours', 'closing time', 'what time do you open', 'what time do you close', 'when do you open', 'when do you close', 'when do u open', 'when do u close', 'what time you dey open', 'are you closed'];
 const GREETINGS = ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening', 'akwaaba', 'how are you'];
 
 export class RulesEngine implements NluEngine {
@@ -37,6 +38,7 @@ export class RulesEngine implements NluEngine {
     if (HUMAN_HINTS.some((h) => lower.includes(h))) return { kind: 'HUMAN', confidence: 0.85 };
     if (DELIVERY_HINTS.some((h) => lower.includes(h))) return { kind: 'FAQ', topic: 'delivery', confidence: 0.85 };
     if (PAYMENT_HINTS.some((h) => lower.includes(h))) return { kind: 'FAQ', topic: 'payment', confidence: 0.85 };
+    if (HOURS_HINTS.some((h) => lower.includes(h))) return { kind: 'FAQ', topic: 'hours', confidence: 0.85 };
     if (PRICE_HINTS.some((h) => lower.includes(h))) {
       const ids = catalog.filter((c) => nameVariants(c).some((v) => lower.includes(v))).map((c) => c.id);
       return { kind: 'PRICE', itemIds: ids, confidence: 0.85 };

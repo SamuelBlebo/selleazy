@@ -131,3 +131,25 @@ test('merchant FAQs match different wordings, and nothing unrelated', () => {
   assert.equal(a('I want to complain about my order'), null);
   assert.equal(a('hello'), null);
 });
+
+test('opening hours: open, closed, overnight, next opening, hours question', async () => {
+  const { isOpen, nextOpening } = require('../lib/domain/hours.js');
+  const nine = { open: '09:00', close: '17:00' };
+  // Mon–Fri 9–5, Saturday 18:00–02:00, Sunday closed. Accra is UTC+0.
+  const hours = { enabled: true, timezone: 'Africa/Accra', ordersWhenClosed: true, days: [null, nine, nine, nine, nine, nine, { open: '18:00', close: '02:00' }] };
+  const at = (iso) => new Date(iso);
+  assert.equal(isOpen(hours, at('2026-11-16T10:00:00Z')), true); // Monday 10:00
+  assert.equal(isOpen(hours, at('2026-11-16T17:00:00Z')), false); // Monday 17:00
+  assert.equal(isOpen(hours, at('2026-11-21T23:30:00Z')), true); // Saturday late
+  assert.equal(isOpen(hours, at('2026-11-22T01:30:00Z')), true); // early Sunday, still Saturday's shift
+  assert.equal(isOpen(hours, at('2026-11-22T03:00:00Z')), false); // Sunday
+  assert.equal(nextOpening(hours, at('2026-11-22T03:00:00Z')), 'tomorrow at 9am');
+  assert.equal(nextOpening(hours, at('2026-11-16T07:00:00Z')), 'today at 9am');
+  assert.equal(nextOpening(hours, at('2026-11-20T18:00:00Z')), 'tomorrow at 6pm'); // Friday evening
+  assert.equal(isOpen({ ...hours, enabled: false }, at('2026-11-22T03:00:00Z')), true);
+  assert.equal(isOpen(hours, at('2026-11-16T09:30:00Z')) && isOpen({ ...hours, timezone: 'Africa/Nairobi' }, at('2026-11-16T06:30:00Z')), true); // 9:30 in Nairobi
+  for (const q of ['are you open?', 'what time do you close', 'opening hours pls']) {
+    const r = await engine.parse({ text: q, catalog: food });
+    assert.equal(r.kind === 'FAQ' && r.topic, 'hours', q);
+  }
+});
