@@ -1,4 +1,5 @@
 import { usePageTitle } from '@/hooks/usePageTitle';
+import { SITE } from '@/config/site';
 
 const LAST_UPDATED = 'September 7, 2026';
 
@@ -107,8 +108,8 @@ export function TermsOfServicePage() {
           <h2 className="text-base font-semibold text-ink">11. Contact</h2>
           <p className="mt-2 text-sm text-muted">
             Questions about these terms can be sent to{' '}
-            <a href="mailto:support@selleazy.com" className="font-semibold text-brand">
-              support@selleazy.com
+            <a href={`mailto:${SITE.supportEmail}`} className="font-semibold text-brand">
+              {SITE.supportEmail}
             </a>
             .
           </p>

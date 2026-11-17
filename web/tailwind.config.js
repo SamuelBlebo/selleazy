@@ -25,6 +25,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        display: ['"Bricolage Grotesque"', 'Inter', 'system-ui', 'sans-serif'],
         cap: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         mono: ['ui-monospace', 'Cascadia Mono', 'Consolas', 'monospace'],
       },
@@ -36,10 +37,12 @@ export default {
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
         'slide-in': { from: { opacity: '0', transform: 'translateX(32px)' }, to: { opacity: '1', transform: 'none' } },
+        rise: { from: { opacity: '0', transform: 'translateY(10px)' }, to: { opacity: '1', transform: 'none' } },
       },
       animation: {
         'fade-in': 'fade-in 160ms ease-out',
         'slide-in': 'slide-in 280ms cubic-bezier(.16,1,.3,1)',
+        rise: 'rise 500ms cubic-bezier(.16,1,.3,1) both',
       },
     },
   },

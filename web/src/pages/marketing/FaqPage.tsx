@@ -3,12 +3,12 @@ import { Link } from 'react-router-dom';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { cn } from '@/utils/cn';
 
-interface FaqItem {
+export interface FaqItem {
   question: string;
   answer: string;
 }
 
-const FAQS: FaqItem[] = [
+export const FAQS: FaqItem[] = [
   {
     question: 'Do my customers need to install anything?',
     answer:
