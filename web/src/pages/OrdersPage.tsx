@@ -156,7 +156,13 @@ function ManualOrderDrawer({ open, onClose, onCreated }: { open: boolean; onClos
         appointmentAt: form.when ? new Date(form.when).toISOString() : null,
         note: form.note || null,
       });
-      toast.success(`#${r.number} created.`);
+      if (r.payUrl && !r.linkSent) {
+        // WhatsApp won't take a free-form message 24h+ after the customer's last one: staff share the link themselves.
+        await navigator.clipboard?.writeText(r.payUrl).catch(() => undefined);
+        toast.success(`#${r.number} created. Payment link copied. Send it to the customer.`);
+      } else {
+        toast.success(r.linkSent ? `#${r.number} created. Payment link sent on WhatsApp.` : `#${r.number} created.`);
+      }
       setForm({ name: '', phone: '', address: '', when: '', note: '' });
       setLines([]);
       onCreated(r.orderId);

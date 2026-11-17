@@ -5,13 +5,15 @@ import type { BusinessType, CatalogItem, Fulfilment, ItemKind, OrgFeatures, What
 import { formatMoney, parseAmount, type Currency } from '../domain/money';
 import { DRAFT_THRESHOLD, nlu, readWhen, type NluCatalogItem } from '../nlu';
 import { matchFaq, type Faq } from '../nlu/faq';
+import type { PayMode } from '../payments/paystackLinks';
 import { guessNetwork } from '../payments/providers';
 import { placeOrder } from '../services/orders';
+import { createPayLink } from '../services/payLinks';
 import { submitPayment } from '../services/payments';
 import { customerRef, draftOrdersRef, itemsRef, messagesRef, ordersRef, orgRef, sessionsRef } from '../tenant';
 import { Outbox } from './client';
 import { isBotPaused } from './coexistence';
-import { FULFILMENT_LABEL, formatDuration, formatWhen, linesSummary, paymentInstructions, vocabulary } from './copy';
+import { FULFILMENT_LABEL, formatDuration, formatWhen, howToPay, linesSummary, vocabulary } from './copy';
 
 /**
  * The WhatsApp ordering bot. Ported from OrderFlow's Cloudflare Worker
@@ -88,6 +90,7 @@ interface Org {
   faqs: Faq[];
   hours: OpeningHours | null;
   momo: Record<string, string | null> | undefined;
+  payMode: PayMode;
   suspended: boolean;
 }
 
@@ -121,6 +124,8 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
       lastMessageAt: now,
       lastMessageText: (body ?? `(${message.type})`).slice(0, 120),
       lastMessageOut: false,
+      // Opens WhatsApp's 24-hour window for free-form messages (payment reminders check it).
+      lastInboundAt: now,
       unreadCount: FieldValue.increment(1),
       updatedAt: now,
       ...(custSnap.exists
@@ -146,6 +151,7 @@ export async function handleInbound(account: WhatsappAccount, message: InboundMe
     faqs: Array.isArray(o.bot?.faqs) ? (o.bot.faqs as Faq[]) : [],
     hours: (o.bot?.hours as OpeningHours) ?? null,
     momo: o.momo as Org['momo'],
+    payMode: (o.paymentSettings?.mode as PayMode) ?? 'manual',
     suspended: o.suspended === true,
   };
   const ctx: Ctx = { orgId, waId, profileName, org, s, out: new Outbox(account, orgId, waId, 'bot') };
@@ -540,12 +546,13 @@ async function confirmCheckout(ctx: Ctx): Promise<Partial<Session>> {
     return { step: 'browsing' };
   }
   const noun = s.cart.every((l) => l.kind === 'service') ? words(ctx).order : 'order';
+  const link = ctx.org.payMode === 'manual' ? null : await createPayLink(ctx.orgId, result.orderId);
   await ctx.out.text(
     [
       `${noun[0].toUpperCase()}${noun.slice(1)} #${result.number} received. Total ${formatMoney(result.totalMinor, ctx.org.currency)}.`,
       s.timeRequest ? 'We will confirm your time shortly.' : null,
       '',
-      paymentInstructions(result.totalMinor, ctx.org.momo, ctx.org.currency),
+      howToPay(result.totalMinor, ctx.org.momo, link, ctx.org.payMode, ctx.org.currency),
     ].filter((l) => l !== null).join('\n'),
   );
   return { step: 'idle', cart: [], pendingItemId: null, fulfilment: null, address: null, timeRequest: null, timeAt: null };

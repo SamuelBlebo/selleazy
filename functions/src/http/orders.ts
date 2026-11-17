@@ -4,10 +4,12 @@ import { z } from 'zod';
 import type { CatalogItem, OrderStatus } from '../domain/model';
 import { can } from '../domain/permissions';
 import { placeOrder, transitionOrder } from '../services/orders';
+import { createPayLink, paymentSettingsOf } from '../services/payLinks';
 import { formatMoney, type Currency } from '../domain/money';
-import { db, draftOrdersRef, itemsRef, loadCredentialsForOrg, ordersRef, orgRef, stockMovementsRef, toWaId } from '../tenant';
+import { PAYSTACK_SECRET_KEY } from '../config';
+import { customerRef, db, draftOrdersRef, itemsRef, loadCredentialsForOrg, ordersRef, orgRef, stockMovementsRef, toWaId } from '../tenant';
 import { Outbox } from '../whatsapp/client';
-import { linesSummary, paymentInstructions } from '../whatsapp/copy';
+import { howToPay, linesSummary } from '../whatsapp/copy';
 import { parse, requireMember } from './guards';
 
 const STATUSES = ['pending', 'confirmed', 'in_progress', 'ready', 'out_for_delivery', 'completed', 'cancelled'] as const;
@@ -45,7 +47,7 @@ export const setAppointment = onCall(async (request) => {
 });
 
 /** Orders taken by phone or in person. */
-export const createManualOrder = onCall(async (request) => {
+export const createManualOrder = onCall({ secrets: [PAYSTACK_SECRET_KEY] }, async (request) => {
   const { orgId, uid } = await requireMember(request.auth, 'orders.manage');
   const input = parse(
     z.object({
@@ -72,11 +74,30 @@ export const createManualOrder = onCall(async (request) => {
     by: uid,
   });
   if (!result.ok) throw new HttpsError('failed-precondition', placeErrors(result));
-  return { orderId: result.orderId, number: result.number };
+
+  // With payment links on, send the link if WhatsApp still allows a free-form message; staff get it either way.
+  const link = await createPayLink(orgId, result.orderId);
+  let linkSent = false;
+  if (link) {
+    try {
+      const [creds, org, cust] = await Promise.all([loadCredentialsForOrg(orgId), orgRef(orgId).get(), customerRef(orgId, waId).get()]);
+      const lastInbound = (cust.get('lastInboundAt') as Timestamp | undefined)?.toMillis() ?? null;
+      if (creds && lastInbound && Date.now() - lastInbound < 23.5 * 60 * 60000) {
+        const currency = (org.get('currency') as Currency) ?? 'GHS';
+        const sent = await new Outbox(creds, orgId, waId, 'bot').text(
+          [`Order #${result.number}: ${formatMoney(result.totalMinor, currency)}`, '', howToPay(result.totalMinor, org.get('momo'), link, paymentSettingsOf(org).mode, currency)].join('\n'),
+        );
+        linkSent = sent.ok;
+      }
+    } catch {
+      // Staff still get the link below and can share it themselves.
+    }
+  }
+  return { orderId: result.orderId, number: result.number, payUrl: link?.url ?? null, linkSent };
 });
 
 /** Turns a typed-order draft into a real order, after a human corrected it. */
-export const acceptDraftOrder = onCall(async (request) => {
+export const acceptDraftOrder = onCall({ secrets: [PAYSTACK_SECRET_KEY] }, async (request) => {
   const { orgId, uid } = await requireMember(request.auth, 'orders.manage');
   const input = parse(
     z.object({
@@ -110,7 +131,7 @@ export const acceptDraftOrder = onCall(async (request) => {
 
   // Tell the customer what was confirmed and how to pay. Best-effort: the order stands either way.
   try {
-    const [creds, org] = await Promise.all([loadCredentialsForOrg(orgId), orgRef(orgId).get()]);
+    const [creds, org, link] = await Promise.all([loadCredentialsForOrg(orgId), orgRef(orgId).get(), createPayLink(orgId, result.orderId)]);
     const currency = (org.get('currency') as Currency) ?? 'GHS';
     if (creds) {
       await new Outbox(creds, orgId, waId, 'bot').text(
@@ -119,7 +140,7 @@ export const acceptDraftOrder = onCall(async (request) => {
           linesSummary(result.lines, currency),
           `Total: ${formatMoney(result.totalMinor, currency)}`,
           '',
-          paymentInstructions(result.totalMinor, org.get('momo'), currency),
+          howToPay(result.totalMinor, org.get('momo'), link, paymentSettingsOf(org).mode, currency),
         ].join('\n'),
       );
     }

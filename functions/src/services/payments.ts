@@ -1,6 +1,7 @@
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, type DocumentSnapshot, type Transaction } from 'firebase-admin/firestore';
 import { HttpsError } from 'firebase-functions/v2/https';
 import type { MomoNetwork, OrderStatus, PaymentMethod, PaymentState } from '../domain/model';
+import { creditFromCharge, paystackPaymentId, settle, type PayLink } from '../payments/paystackLinks';
 import { customerRef, db, ordersRef, paymentRefsRef, paymentsRef } from '../tenant';
 
 /**
@@ -100,34 +101,94 @@ export async function verifyPayment(orgId: string, paymentId: string, by: string
     if (!order.exists) throw new HttpsError('not-found', 'The order for this payment is gone.');
 
     const amount = (payment.get('claimedMinor') as number | null) ?? (payment.get('expectedMinor') as number);
-    const paidMinor = ((order.get('paidMinor') as number) ?? 0) + amount;
-    const totalMinor = order.get('totalMinor') as number;
-    const fullyPaid = paidMinor >= totalMinor;
     const now = Timestamp.now();
-
     tx.update(ref, { status: 'verified', verifiedBy: by, verifiedAt: now, amountMinor: amount, updatedAt: now });
-    const orderPatch: Record<string, unknown> = {
-      paidMinor,
-      paymentState: (fullyPaid ? 'paid' : 'partial') satisfies PaymentState,
-      updatedAt: now,
-    };
-    const confirms = fullyPaid && (order.get('status') as OrderStatus) === 'pending';
-    if (confirms) {
-      orderPatch.status = 'confirmed';
-      orderPatch.confirmedAt = now;
-      orderPatch.statusHistory = FieldValue.arrayUnion({ status: 'confirmed', at: now, by, reason: 'Payment verified' });
-    }
-    tx.update(orderDoc, orderPatch);
-    tx.set(customerRef(orgId, order.get('customerId') as string), { totalSpentMinor: FieldValue.increment(amount), updatedAt: now }, { merge: true });
+    const s = applyToOrder(tx, orgId, order, amount, by, 'Payment verified', now);
+    return { amountMinor: amount, ...s };
+  });
+}
 
-    return {
+/** Adds a verified amount to the order (and confirms a pending one once fully paid) and credits the customer. */
+function applyToOrder(tx: Transaction, orgId: string, order: DocumentSnapshot, amount: number, by: string, reason: string, now: Timestamp) {
+  const s = settle(
+    { totalMinor: order.get('totalMinor') as number, paidMinor: (order.get('paidMinor') as number) ?? 0, status: order.get('status') as OrderStatus },
+    amount,
+  );
+  const orderPatch: Record<string, unknown> = { paidMinor: s.paidMinor, paymentState: s.paymentState, updatedAt: now };
+  if (s.confirms) {
+    orderPatch.status = 'confirmed';
+    orderPatch.confirmedAt = now;
+    orderPatch.statusHistory = FieldValue.arrayUnion({ status: 'confirmed', at: now, by, reason });
+  }
+  tx.update(order.ref, orderPatch);
+  tx.set(customerRef(orgId, order.get('customerId') as string), { totalSpentMinor: FieldValue.increment(amount), updatedAt: now }, { merge: true });
+  return {
+    fullyPaid: s.fullyPaid,
+    confirmed: s.confirms,
+    flags: s.flags,
+    orderNumber: order.get('number') as number,
+    customerId: order.get('customerId') as string,
+    balanceMinor: s.balanceMinor,
+  };
+}
+
+export interface ProviderPaymentInput {
+  orgId: string;
+  orderId: string;
+  /** The provider's reference, e.g. the Paystack transaction reference. */
+  reference: string;
+  /** What the provider collected. */
+  chargedMinor: number;
+  method: PaymentMethod;
+  network: MomoNetwork | null;
+  payerPhone: string | null;
+  /** e.g. "provider:paystack" */
+  by: string;
+}
+
+/**
+ * Records a payment a provider (Paystack) already confirmed. Created under a
+ * fixed id per reference inside a transaction, so the same webhook twice
+ * credits the order once. The fee the customer added on top is not credited.
+ */
+export async function recordProviderPayment(input: ProviderPaymentInput) {
+  const { orgId } = input;
+  const ref = paymentsRef(orgId).doc(paystackPaymentId(input.reference));
+  const orderDoc = ordersRef(orgId).doc(input.orderId);
+  return db().runTransaction(async (tx) => {
+    const [existing, order] = await Promise.all([tx.get(ref), tx.get(orderDoc)]);
+    if (existing.exists) return { duplicate: true as const };
+    if (!order.exists) throw new Error(`Paid order ${input.orderId} not found in ${orgId}`);
+
+    const amount = creditFromCharge(input.chargedMinor, input.reference, order.get('payLink') as PayLink | undefined);
+    const dueMinor = Math.max(0, (order.get('totalMinor') as number) - ((order.get('paidMinor') as number) ?? 0));
+    const now = Timestamp.now();
+    const s = applyToOrder(tx, orgId, order, amount, input.by, 'Paid online', now);
+    tx.set(ref, {
+      orderId: input.orderId,
+      orderNumber: order.get('number'),
+      customerId: order.get('customerId'),
+      customerName: order.get('customerName'),
+      method: input.method,
+      network: input.network,
+      reference: input.reference,
+      claimedMinor: amount,
+      expectedMinor: dueMinor,
       amountMinor: amount,
-      fullyPaid,
-      confirmed: confirms,
-      orderNumber: order.get('number') as number,
-      customerId: order.get('customerId') as string,
-      balanceMinor: Math.max(0, totalMinor - paidMinor),
-    };
+      chargedMinor: input.chargedMinor,
+      payerPhone: input.payerPhone,
+      status: 'verified',
+      flags: s.flags,
+      duplicateOfOrderNumber: null,
+      source: 'provider',
+      submittedBy: input.by,
+      verifiedBy: input.by,
+      verifiedAt: now,
+      rejectedReason: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    return { duplicate: false as const, amountMinor: amount, ...s };
   });
 }
 

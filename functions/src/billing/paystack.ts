@@ -33,10 +33,24 @@ export interface InitializeTransactionResult {
   reference: string;
 }
 
-/** Starts a hosted checkout — the customer completes payment on Paystack's page, then returns to `callbackUrl`. */
+/**
+ * Starts a hosted checkout: the customer pays on Paystack's page. For order
+ * payment links pass the merchant's subaccount with bearer "subaccount",
+ * so the money and the fee land on the merchant, not on SellEazy.
+ */
 export function initializeTransaction(
   secretKey: string,
-  params: { email: string; amount: number; currency: string; callbackUrl: string; metadata: Record<string, unknown> },
+  params: {
+    email: string;
+    amount: number;
+    currency: string;
+    callbackUrl?: string;
+    metadata: Record<string, unknown>;
+    reference?: string;
+    channels?: string[];
+    subaccount?: string;
+    bearer?: 'account' | 'subaccount';
+  },
 ): Promise<InitializeTransactionResult> {
   return paystackFetch(secretKey, '/transaction/initialize', {
     method: 'POST',
@@ -44,8 +58,54 @@ export function initializeTransaction(
       email: params.email,
       amount: params.amount,
       currency: params.currency,
-      callback_url: params.callbackUrl,
       metadata: params.metadata,
+      ...(params.callbackUrl ? { callback_url: params.callbackUrl } : {}),
+      ...(params.reference ? { reference: params.reference } : {}),
+      ...(params.channels ? { channels: params.channels } : {}),
+      ...(params.subaccount ? { subaccount: params.subaccount, bearer: params.bearer ?? 'subaccount' } : {}),
+    }),
+  });
+}
+
+/** Asks Paystack directly whether a charge succeeded. Webhook bodies are never trusted on their own. */
+export function verifyTransaction<T>(secretKey: string, reference: string): Promise<T> {
+  return paystackFetch(secretKey, `/transaction/verify/${encodeURIComponent(reference)}`);
+}
+
+export interface PaystackBank {
+  name: string;
+  code: string;
+  type: string;
+  active?: boolean;
+}
+
+/** Ghanaian banks and mobile money providers a merchant can be paid out to. */
+export async function listSettlementBanks(secretKey: string): Promise<PaystackBank[]> {
+  const [banks, momo] = await Promise.all([
+    paystackFetch<PaystackBank[]>(secretKey, '/bank?currency=GHS&perPage=100'),
+    paystackFetch<PaystackBank[]>(secretKey, '/bank?currency=GHS&type=mobile_money&perPage=100'),
+  ]);
+  const byCode = new Map<string, PaystackBank>();
+  for (const b of [...momo, ...banks]) if (b.active !== false && !byCode.has(b.code)) byCode.set(b.code, b);
+  return [...byCode.values()];
+}
+
+export interface SubaccountResult {
+  subaccount_code: string;
+  settlement_bank?: string;
+  account_number?: string;
+}
+
+/** A merchant's own Paystack subaccount: order payments settle straight to their bank or MoMo wallet. SellEazy takes no cut. */
+export function createSubaccount(secretKey: string, params: { businessName: string; bankCode: string; accountNumber: string; phone?: string | null }): Promise<SubaccountResult> {
+  return paystackFetch(secretKey, '/subaccount', {
+    method: 'POST',
+    body: JSON.stringify({
+      business_name: params.businessName,
+      settlement_bank: params.bankCode,
+      account_number: params.accountNumber,
+      percentage_charge: 0,
+      ...(params.phone ? { primary_contact_phone: params.phone } : {}),
     }),
   });
 }

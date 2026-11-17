@@ -2,7 +2,7 @@ import { Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onRequest } from 'firebase-functions/v2/https';
-import { META_APP_SECRET, WHATSAPP_VERIFY_TOKEN } from '../config';
+import { META_APP_SECRET, PAYSTACK_SECRET_KEY, WHATSAPP_VERIFY_TOKEN } from '../config';
 import { loadWhatsappAccount, webhookEventRef, whatsappAccountRef } from '../tenant';
 import { handleInbound } from './bot';
 import { wa } from './client';
@@ -70,7 +70,8 @@ export const whatsappWebhook = onRequest({ secrets: [META_APP_SECRET, WHATSAPP_V
   }
 });
 
-export const processWhatsappEvent = onDocumentCreated({ document: 'webhookEvents/{eventId}', retry: false }, async (event) => {
+// PAYSTACK_SECRET_KEY: the bot creates payment links at checkout.
+export const processWhatsappEvent = onDocumentCreated({ document: 'webhookEvents/{eventId}', retry: false, secrets: [PAYSTACK_SECRET_KEY] }, async (event) => {
   const data = event.data?.data();
   if (!data) return;
   const account = await loadWhatsappAccount(data.phoneNumberId as string);

@@ -12,8 +12,8 @@ export { createOrganization, inviteMember, cancelInvite, acceptInvite, updateMem
 // Orders, drafts, stock
 export { updateOrderStatus, setAppointment, createManualOrder, acceptDraftOrder, dismissDraftOrder, adjustStock } from './http/orders';
 
-// Payments (manual MoMo verification)
-export { verifyMomoPayment, rejectMomoPayment, recordPayment } from './http/payments';
+// Payments (manual MoMo verification, and Paystack payment links)
+export { verifyMomoPayment, rejectMomoPayment, recordPayment, listPayoutBanks, setupPayouts } from './http/payments';
 
 // WhatsApp
 export { whatsappWebhook, processWhatsappEvent } from './whatsapp/webhook';
@@ -30,6 +30,7 @@ export { getPlatformMetrics, listMerchants, suspendMerchant, unsuspendMerchant, 
 export { onOrderStatusChange, onItemCreated } from './triggers/orderTriggers';
 export { cleanupSessions } from './triggers/cleanupSessions';
 export { renewSubscriptions } from './triggers/renewSubscriptions';
+export { sendPayReminders } from './triggers/payReminders';
 
 export const health = onRequest((_req, res) => {
   res.json({ ok: true, service: 'selleazy-functions' });

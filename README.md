@@ -25,7 +25,8 @@ selleazy-web/
 | Typed orders | "2 jollof abeg" or "box braids tomorrow 10am" becomes a **draft** a person corrects and confirms. SellEazy never places a typed order on its own. |
 | Chats | WhatsApp-style inbox: unread counts, "waiting for you" when the bot hands over, quick replies, 24-hour reply window shown. |
 | Orders and bookings | One flow for everyone (New → Confirmed → In progress → Ready → Out for delivery → Done), labels per business type. Rider, booking time, notes, timeline. Phone and walk-in orders by hand. |
-| MoMo checks | Customer replies with a Transaction ID; SellEazy flags wrong amounts and reused IDs; staff verify or reject. Verified + fully paid confirms the order and thanks the customer. |
+| Payment links | Settings → Payments: customers tap a Paystack link and pay MoMo or card; the order confirms itself and the money settles to the merchant's own subaccount. One reminder if unpaid. |
+| MoMo checks | Customer replies with a Transaction ID; SellEazy flags wrong amounts and reused IDs; staff verify or reject. Verified + fully paid confirms the order and thanks the customer. Stays as the fallback for payment links. |
 | Stock | Set aside when an order is placed, returned on cancel, restock / wastage / count corrections, full history. |
 | Kitchen screen | For food businesses: big tickets with timers. |
 | Customers | History, spend, private notes, promotions (Growth plan and up). |
@@ -156,10 +157,29 @@ Add `WA_PIN` (6-digit two-step PIN) the first time you use a number you added yo
 
 Customers who messaged in the last 24 hours get free-form replies; older ones need Meta-approved templates (promotions included).
 
+## Payment links (Paystack, automatic MoMo confirmation)
+
+Platform owner, once:
+1. Live Paystack business account for Ghana (needs proof of address). Set the `PAYSTACK_SECRET_KEY` secret (test key first).
+2. Paystack dashboard → Settings → API Keys & Webhooks: webhook URL `https://europe-west1-<project-id>.cloudfunctions.net/billingWebhook`. Paystack allows one URL per account, so plan payments and order payments share it (routed by `metadata.kind`).
+3. Make sure subaccounts (split payments) are enabled on the account.
+4. Deploy indexes (`firebase deploy --only firestore:indexes`): the reminder job needs the `orders` collection-group index on `payLink.remindedAt` + `payLink.remindAt`.
+
+Merchant (Settings → Payments):
+1. Choose **Payment link (automatic)** or **Both**.
+2. **Set up payouts**: business name + MoMo wallet or bank. This creates their Paystack subaccount (`setupPayouts`); SellEazy takes 0%.
+3. Choose who pays Paystack's fee (about 1.95%, `PAYSTACK_GH_FEE_BPS`) and when to remind unpaid customers.
+
+How it works:
+- At checkout (bot, staff orders, accepted drafts) `createPayLink` initialises a Paystack transaction for what's due, with the merchant's `subaccount` and `bearer: "subaccount"` (the fee is the merchant's, never SellEazy's), channels MoMo + card, metadata `{kind: 'order', orgId, orderId}`. If anything fails, the customer gets the manual MoMo instructions instead.
+- `billingWebhook` checks the signature, re-reads the charge from Paystack's verify endpoint, and records it as `payments/paystack_<reference>` in a transaction: the same webhook twice credits once. A fee the customer paid on top is not credited. Less than due → partially paid and flagged on the Payments page.
+- `sendPayReminders` (every 5 min) sends one reminder with the same link, only inside WhatsApp's 24-hour window.
+- Customers have no email, so Paystack gets `wa<number>@customers.selleazy.com` (`customerEmail`). Point that domain somewhere that drops mail, or change it, before going live.
+
 ## Security
 
 - `users/{uid}` (which business and role you belong to) and new businesses are written **only** by Cloud Functions. OrderFlow let the browser write that document, which allowed taking over another business; `scripts/check-tenant-rules.mjs` proves it is closed.
-- Orders, payments, drafts, messages and stock changes are server-only. The browser edits catalogue items (not stock), a short list of owner settings (not plan, suspension or WhatsApp), and customer notes.
+- Orders, payments, drafts, messages and stock changes are server-only. The browser edits catalogue items (not stock), a short list of owner settings (not plan, suspension, WhatsApp or the Paystack payout account), and customer notes.
 - Every callable re-reads the caller's business and role (`functions/src/http/guards.ts`); roles mirror `functions/src/domain/permissions.ts`.
 
 ## Seams for later
@@ -173,7 +193,7 @@ Customers who messaged in the last 24 hours get free-form replies; older ones ne
 
 ## Not done yet
 
-- Automatic MoMo collection (interfaces only; verification is manual).
+- Direct MTN / Telecel / AirtelTigo collection APIs (Paystack payment links cover automatic MoMo today).
 - WhatsApp message templates for messaging customers after 24 hours.
 - Table QR codes for food businesses (rules exist; no screen yet).
 - Paystack and Meta Embedded Signup have not been exercised against live accounts. Test with test-mode keys and a Meta test number first.

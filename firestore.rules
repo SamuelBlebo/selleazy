@@ -39,6 +39,14 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/platformAdmins/$(request.auth.uid));
     }
 
+    // Settings → Payments. The payout account (organizations.paystack) is server-only.
+    function validPaymentSettings(p) {
+      return p.keys().hasOnly(['mode', 'customerPaysFee', 'reminderMinutes'])
+        && p.mode in ['link', 'manual', 'both']
+        && p.customerPaysFee is bool
+        && p.reminderMinutes is int && p.reminderMinutes >= 0 && p.reminderMinutes <= 1440;
+    }
+
     function validItem(d) {
       return d.kind in ['product', 'service']
         && d.name is string && d.name.size() > 0 && d.name.size() <= 100
@@ -60,9 +68,10 @@ service cloud.firestore {
     match /organizations/{orgId} {
       allow read: if memberOf(orgId);
       allow create, delete: if false; // createOrganization / deleteMerchant only
-      // Owner settings. Never plan, suspension, WhatsApp mirror, counters or ownership.
+      // Owner settings. Never plan, suspension, WhatsApp mirror, Paystack payout account, counters or ownership.
       allow update: if roleIn(orgId, ['owner'])
-        && onlyChanges(['name', 'phone', 'area', 'category', 'businessType', 'deliveryFeeMinor', 'features', 'bot', 'momo', 'currency', 'updatedAt'])
+        && onlyChanges(['name', 'phone', 'area', 'category', 'businessType', 'deliveryFeeMinor', 'features', 'bot', 'momo', 'currency', 'paymentSettings', 'updatedAt'])
+        && (!('paymentSettings' in request.resource.data) || validPaymentSettings(request.resource.data.paymentSettings))
         && request.resource.data.currency in ['GHS', 'NGN', 'USD', 'GBP', 'EUR', 'KES', 'ZAR']
         && request.resource.data.deliveryFeeMinor is int && request.resource.data.deliveryFeeMinor >= 0
         && request.resource.data.businessType in ['food', 'retail', 'services', 'mixed'];

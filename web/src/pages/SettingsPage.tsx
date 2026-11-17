@@ -12,8 +12,8 @@ import { useCollection } from '@/hooks/useCollection';
 import { useOrg } from '@/hooks/usePermission';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useToast } from '@/hooks/useToast';
-import { cancelInvite, changePlan, disconnectWhatsapp, inviteMember, removeMember, sendTestMessage, updateMemberRole, updateSettings } from '@/services';
-import type { BusinessType, DayHours, Faq, OpeningHours, Role } from '@/types';
+import { cancelInvite, changePlan, disconnectWhatsapp, inviteMember, listPayoutBanks, removeMember, sendTestMessage, setupPayouts, updateMemberRole, updateSettings, type PayoutBank } from '@/services';
+import type { BusinessType, DayHours, Faq, OpeningHours, PaymentSettings, Role } from '@/types';
 import { cn } from '@/utils/cn';
 import { toMessage } from '@/utils/errors';
 import { money, formatDate, toMinor, currencySymbol, CURRENCIES, type Currency } from '@/utils/format';
@@ -23,7 +23,7 @@ const TABS = [
   ['hours', 'Opening hours'],
   ['faqs', 'Bot answers'],
   ['whatsapp', 'WhatsApp'],
-  ['momo', 'MoMo numbers'],
+  ['momo', 'Payments'],
   ['team', 'Team & roles'],
   ['plan', 'Plan & billing'],
 ] as const;
@@ -32,7 +32,7 @@ export function SettingsPage() {
   usePageTitle('Settings');
   const { tab = 'business' } = useParams();
   if (!TABS.some(([id]) => id === tab)) return <Navigate to="/settings" replace />;
-  const Body = { business: BusinessTab, hours: HoursTab, faqs: FaqTab, whatsapp: WhatsAppTab, momo: MomoTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
+  const Body = { business: BusinessTab, hours: HoursTab, faqs: FaqTab, whatsapp: WhatsAppTab, momo: PaymentsTab, team: TeamTab, plan: PlanTab }[tab as (typeof TABS)[number][0]];
   return (
     <div className="mx-auto max-w-5xl px-4 py-4 md:py-6 lg:px-8">
       <PageHeader title="Settings" />
@@ -242,10 +242,133 @@ function MomoTab() {
           <Input label="AirtelTigo Money number" inputMode="tel" placeholder="Optional" value={m.airteltigo} onChange={(e) => setM({ ...m, airteltigo: e.target.value })} />
           <Input label="Name on the account" value={m.accountName} onChange={(e) => setM({ ...m, accountName: e.target.value })} hint="So customers know they're paying the right person." />
         </div>
-        <SettingRow title="Automatic verification" hint="MTN MoMo, Telecel Cash and AirtelTigo Money APIs. Coming later."><Switch checked={false} disabled label="Automatic verification" onChange={() => undefined} /></SettingRow>
         <div className="flex justify-end">
           <Button loading={busy} onClick={() => void save(() => updateSettings(org.id, { momo: { mtn: m.mtn.trim() || null, telecel: m.telecel.trim() || null, airteltigo: m.airteltigo.trim() || null, accountName: m.accountName.trim() || null } }))}>Save</Button>
         </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+/** Paystack Ghana's local fee. Same as PAYSTACK_GH_FEE_BPS in functions/src/payments/paystackLinks.ts. */
+const PAYSTACK_FEE_PERCENT = 1.95;
+
+const PAY_MODES: Array<[PaymentSettings['mode'], string, string]> = [
+  ['link', 'Payment link (automatic)', 'Customers tap a link and pay by MoMo or card. The order confirms itself.'],
+  ['manual', 'Send to my MoMo number (manual check)', 'Customers send MoMo and reply with the Transaction ID. You check it.'],
+  ['both', 'Both', 'The link first, with your MoMo numbers as another option.'],
+];
+
+/** Settings → Payments: how customers pay, and where payment-link money goes. */
+function PaymentsTab() {
+  const { org } = useOrg();
+  const { busy, save } = useSaver();
+  const [ps, setPs] = useState<PaymentSettings>({ mode: 'manual', customerPaysFee: false, reminderMinutes: 30, ...org.paymentSettings });
+  const payouts = org.paystack;
+  const needsPayouts = ps.mode !== 'manual' && !payouts;
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader title="How customers pay" description="Sent after every WhatsApp order." />
+        <CardBody className="space-y-4">
+          <fieldset className="space-y-2">
+            <legend className="sr-only">How customers pay</legend>
+            {PAY_MODES.map(([value, title, hint]) => (
+              <label key={value} className={cn('flex cursor-pointer gap-3 rounded-lg border p-3', ps.mode === value ? 'border-ok bg-ok-soft' : 'border-line2')}>
+                <input type="radio" name="pay-mode" className="mt-1" checked={ps.mode === value} onChange={() => setPs({ ...ps, mode: value })} />
+                <span><span className="block font-medium">{title}</span><span className="block text-sm text-muted">{hint}</span></span>
+              </label>
+            ))}
+          </fieldset>
+          {ps.mode !== 'manual' && (
+            <>
+              <SettingRow title="Customer pays the fee" hint={`Paystack charges about ${PAYSTACK_FEE_PERCENT}% per payment. On: it's added to what the customer pays. Off: it comes out of what you receive.`}>
+                <Switch checked={ps.customerPaysFee} label="Customer pays the fee" onChange={(v) => setPs({ ...ps, customerPaysFee: v })} />
+              </SettingRow>
+              <div className="w-64">
+                <Select label="Remind unpaid customers after" value={String(ps.reminderMinutes)} onChange={(e) => setPs({ ...ps, reminderMinutes: Number(e.target.value) })}>
+                  <option value="0">Never</option>
+                  {[15, 30, 60, 120].map((m) => <option key={m} value={m}>{m < 60 ? `${m} minutes` : `${m / 60} hour${m > 60 ? 's' : ''}`}</option>)}
+                </Select>
+              </div>
+            </>
+          )}
+          {needsPayouts && (
+            <p className="flex gap-2 rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent-ink">
+              <Icon name="alert" className="mt-0.5 h-4 w-4 shrink-0" /> Set up where your money goes (below). Until then customers get your MoMo numbers instead.
+            </p>
+          )}
+          <div className="flex justify-end">
+            <Button loading={busy} onClick={() => void save(() => updateSettings(org.id, { paymentSettings: ps }))}>Save</Button>
+          </div>
+        </CardBody>
+      </Card>
+      {ps.mode !== 'manual' && <PayoutsCard />}
+      <MomoTab />
+    </div>
+  );
+}
+
+/** The merchant's own Paystack subaccount: payment-link money settles straight to them. */
+function PayoutsCard() {
+  const { org } = useOrg();
+  const toast = useToast();
+  const { busy, save } = useSaver();
+  const [banks, setBanks] = useState<PayoutBank[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [f, setF] = useState({ businessName: org.name, bankCode: '', accountNumber: '' });
+  const payouts = org.paystack;
+
+  const open = async () => {
+    setLoading(true);
+    try {
+      setBanks((await listPayoutBanks()).banks);
+    } catch (e) {
+      toast.error(toMessage(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+  const bank = banks?.find((b) => b.code === f.bankCode);
+
+  return (
+    <Card>
+      <CardHeader title="Where your money goes" description="Payment-link money is paid out by Paystack to your own MoMo wallet or bank. SellEazy never holds it." action={payouts ? <Badge tone="ok">Set up</Badge> : undefined} />
+      <CardBody className="space-y-3">
+        {payouts && !banks ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <p>{payouts.businessName} · {payouts.bankName} ending {payouts.accountLast4}</p>
+            <Button variant="secondary" loading={loading} onClick={() => void open()}>Change</Button>
+          </div>
+        ) : !banks ? (
+          <Button loading={loading} onClick={() => void open()}>Set up payouts</Button>
+        ) : (
+          <>
+            <Input label="Business name" value={f.businessName} onChange={(e) => setF({ ...f, businessName: e.target.value })} />
+            <Select label="Pay me to" value={f.bankCode} onChange={(e) => setF({ ...f, bankCode: e.target.value })}>
+              <option value="">Choose MoMo or bank</option>
+              <optgroup label="Mobile money">{banks.filter((b) => b.momo).map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}</optgroup>
+              <optgroup label="Banks">{banks.filter((b) => !b.momo).map((b) => <option key={b.code} value={b.code}>{b.name}</option>)}</optgroup>
+            </Select>
+            <Input
+              label={bank?.momo ? 'MoMo number' : 'Account number'}
+              inputMode="numeric"
+              placeholder={bank?.momo ? '0244000000' : ''}
+              value={f.accountNumber}
+              onChange={(e) => setF({ ...f, accountNumber: e.target.value.replace(/\D/g, '') })}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setBanks(null)}>Cancel</Button>
+              <Button
+                loading={busy}
+                disabled={!bank || f.accountNumber.length < 6 || f.businessName.trim().length < 2}
+                onClick={() => void save(async () => { await setupPayouts({ ...f, bankName: bank!.name }); setBanks(null); }, 'Payouts set up.')}
+              >
+                Save
+              </Button>
+            </div>
+          </>
+        )}
       </CardBody>
     </Card>
   );

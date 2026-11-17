@@ -3,10 +3,16 @@ import { logger } from 'firebase-functions/v2';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
 import { z } from 'zod';
 import { PLANS } from '../billing/plans';
-import { initializeTransaction, verifyPaystackSignature } from '../billing/paystack';
+import { initializeTransaction, verifyPaystackSignature, verifyTransaction } from '../billing/paystack';
 import { APP_URL, PAYSTACK_SECRET_KEY } from '../config';
 import type { PlanId } from '../domain/model';
-import { orgRef } from '../tenant';
+import type { Currency } from '../domain/money';
+import { checkOrderCharge, type VerifiedCharge } from '../payments/paystackLinks';
+import { guessNetwork } from '../payments/providers';
+import { recordProviderPayment } from '../services/payments';
+import { loadCredentialsForOrg, orgRef } from '../tenant';
+import { Outbox } from '../whatsapp/client';
+import { paymentReceivedText } from '../whatsapp/copy';
 import { parse, requireMember } from './guards';
 
 /**
@@ -62,7 +68,10 @@ export const billingWebhook = onRequest({ secrets: [PAYSTACK_SECRET_KEY] }, asyn
   }
   try {
     const event = req.body as { event?: string; data?: Record<string, unknown> };
-    if (event.event === 'charge.success' && event.data) {
+    // Paystack allows one webhook URL per account, so order payment links arrive here too.
+    if (event.event === 'charge.success' && event.data && (event.data.metadata as { kind?: string } | undefined)?.kind === 'order') {
+      await handleOrderCharge(secretKey, String(event.data.reference ?? ''));
+    } else if (event.event === 'charge.success' && event.data) {
       const meta = event.data.metadata as { orgId?: string; plan?: PlanId } | undefined;
       if (meta?.orgId && meta.plan && meta.plan in PLANS) {
         const authorization = event.data.authorization as { authorization_code?: string; reusable?: boolean } | undefined;
@@ -86,3 +95,39 @@ export const billingWebhook = onRequest({ secrets: [PAYSTACK_SECRET_KEY] }, asyn
     res.status(500).send('Retry');
   }
 });
+
+/**
+ * A customer paid an order through a payment link. The webhook body is only
+ * a hint: the charge is re-read from Paystack, checked, and recorded under a
+ * fixed id per reference, so a repeated webhook changes nothing. A pending
+ * order that is now fully paid confirms itself (onOrderStatusChange then
+ * sends the usual status message).
+ */
+async function handleOrderCharge(secretKey: string, reference: string) {
+  if (!reference) return;
+  const charge = await verifyTransaction<VerifiedCharge>(secretKey, reference);
+  const check = checkOrderCharge(charge, reference);
+  if (!check.ok) {
+    logger.warn('Ignored order payment webhook', { reference, reason: check.reason });
+    return;
+  }
+  const r = await recordProviderPayment({
+    orgId: check.orgId,
+    orderId: check.orderId,
+    reference,
+    chargedMinor: check.amountMinor,
+    method: check.method,
+    network: check.method === 'momo' ? guessNetwork(charge.authorization?.bank ?? '') : null,
+    payerPhone: charge.authorization?.mobile_money_number ?? null,
+    by: 'provider:paystack',
+  });
+  if (r.duplicate) return;
+  logger.info('Order paid online', { orgId: check.orgId, orderId: check.orderId, reference, flags: r.flags });
+  try {
+    const creds = await loadCredentialsForOrg(check.orgId);
+    const currency = ((await orgRef(check.orgId).get()).get('currency') as Currency) ?? 'GHS';
+    if (creds && r.customerId) await new Outbox(creds, check.orgId, r.customerId, 'bot').text(paymentReceivedText(r, currency));
+  } catch (err) {
+    logger.warn('Paid, but could not send the thank-you on WhatsApp', { orgId: check.orgId, err });
+  }
+}

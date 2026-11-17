@@ -41,7 +41,7 @@ export interface CreateOrganizationInput {
 export const createOrganization = (input: CreateOrganizationInput) => call<CreateOrganizationInput, { orgId: string }>('createOrganization', input);
 export const acceptInvite = () => call<void, { joined: boolean; orgName?: string }>('acceptInvite');
 
-type SettingsPatch = Partial<Pick<Organization, 'name' | 'phone' | 'area' | 'category' | 'businessType' | 'deliveryFeeMinor' | 'features' | 'bot' | 'momo' | 'currency'>>;
+type SettingsPatch = Partial<Pick<Organization, 'name' | 'phone' | 'area' | 'category' | 'businessType' | 'deliveryFeeMinor' | 'features' | 'bot' | 'momo' | 'currency' | 'paymentSettings'>>;
 /** Owner-only settings; firestore.rules limits which fields this can touch. */
 export function updateSettings(orgId: string, patch: SettingsPatch) {
   return updateDoc(orgRef(orgId), { ...patch, updatedAt: serverTimestamp() } as never);
@@ -130,7 +130,13 @@ export interface ManualOrderInput {
   appointmentAt?: string | null;
   note?: string | null;
 }
-export const createManualOrder = (input: ManualOrderInput) => call<ManualOrderInput, { orderId: string; number: number }>('createManualOrder', input);
+export const createManualOrder = (input: ManualOrderInput) =>
+  call<ManualOrderInput, { orderId: string; number: number; payUrl: string | null; linkSent: boolean }>('createManualOrder', input);
+
+export interface PayoutBank { code: string; name: string; momo: boolean }
+export const listPayoutBanks = () => call<void, { banks: PayoutBank[] }>('listPayoutBanks');
+export interface SetupPayoutsInput { businessName: string; bankCode: string; bankName: string; accountNumber: string }
+export const setupPayouts = (input: SetupPayoutsInput) => call<SetupPayoutsInput, { ok: true; bankName: string; accountLast4: string }>('setupPayouts', input);
 
 export interface AcceptDraftInput {
   draftId: string;

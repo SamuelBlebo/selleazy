@@ -47,6 +47,12 @@ export interface Subscription {
   billingEmail?: string | null;
 }
 
+export interface PaymentSettings {
+  mode: 'link' | 'manual' | 'both';
+  customerPaysFee: boolean;
+  reminderMinutes: number;
+}
+
 export interface WhatsAppMirror {
   connected: boolean;
   phoneNumberId: string | null;
@@ -73,6 +79,10 @@ export interface Organization {
   /** phoneReplyPauseMinutes: how long the bot stays quiet after the owner replies from the phone app (Coexistence). 0 = off, missing = 30. */
   bot: { menuEnabled: boolean; freeTextEnabled: boolean; greeting: string; faqs?: Faq[]; hours?: OpeningHours; phoneReplyPauseMinutes?: number };
   momo: { mtn: string | null; telecel: string | null; airteltigo: string | null; accountName: string | null };
+  /** How customers pay. Missing = manual MoMo checks. Mirrors functions/src/payments/paystackLinks.ts. */
+  paymentSettings?: PaymentSettings;
+  /** The merchant's Paystack payout account. Written only by the setupPayouts function. */
+  paystack?: { subaccountCode: string; businessName: string; bankName: string; accountLast4: string } | null;
   subscription: Subscription;
   whatsapp: WhatsAppMirror;
   orderCounter: number;
@@ -185,11 +195,22 @@ export interface StatusEvent {
   reason?: string | null;
 }
 
+export interface PayLink {
+  reference: string;
+  url: string;
+  amountMinor: number;
+  feeMinor: number;
+  createdAt: Timestamp;
+  remindedAt: Timestamp | null;
+}
+
 export interface Order {
   number: number;
   status: OrderStatus;
   paymentState: PaymentState;
   paidMinor: number;
+  /** Paystack payment link sent to the customer (Settings → Payments). */
+  payLink?: PayLink | null;
   fulfilment: Fulfilment;
   channel: OrderChannel;
   customerId: string;
@@ -229,7 +250,7 @@ export interface DraftOrder {
   createdAt: Timestamp;
 }
 
-export type PaymentFlag = 'amount_mismatch' | 'duplicate_reference' | 'amount_unknown';
+export type PaymentFlag = 'amount_mismatch' | 'duplicate_reference' | 'amount_unknown' | 'order_cancelled';
 
 export interface Payment {
   orderId: string;
@@ -246,7 +267,8 @@ export interface Payment {
   status: 'submitted' | 'verified' | 'rejected';
   flags: PaymentFlag[];
   duplicateOfOrderNumber: number | null;
-  source: 'whatsapp' | 'staff';
+  /** provider = paid through a Paystack payment link and confirmed automatically. */
+  source: 'whatsapp' | 'staff' | 'provider';
   verifiedBy: string | null;
   verifiedAt: Timestamp | null;
   rejectedReason: string | null;

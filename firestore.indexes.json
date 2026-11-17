@@ -50,6 +50,14 @@
         { "fieldPath": "subscription.paymentProvider", "order": "ASCENDING" },
         { "fieldPath": "subscription.renewsAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "orders",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "payLink.remindedAt", "order": "ASCENDING" },
+        { "fieldPath": "payLink.remindAt", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

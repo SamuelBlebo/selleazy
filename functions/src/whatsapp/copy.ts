@@ -124,6 +124,35 @@ export function paymentInstructions(totalMinor: number, momo: { mtn?: string | n
     .join('\n');
 }
 
+/**
+ * How to pay, after an order. With a payment link the customer taps and pays
+ * MoMo or card; in "both" mode the merchant's own MoMo numbers follow as a
+ * fallback. Without a link it is the manual instructions, as before.
+ */
+export function howToPay(
+  dueMinor: number,
+  momo: Parameters<typeof paymentInstructions>[1],
+  link: { url: string; amountMinor: number; feeMinor: number } | null,
+  mode: 'link' | 'manual' | 'both',
+  currency: Currency = 'GHS',
+): string {
+  if (!link) return paymentInstructions(dueMinor, momo, currency);
+  const pay = [
+    `Pay ${formatMoney(link.amountMinor, currency)} by MoMo or card here:`,
+    link.url,
+    link.feeMinor > 0 ? `(includes ${formatMoney(link.feeMinor, currency)} payment fee)` : null,
+    'Your order is confirmed as soon as you pay.',
+  ].filter((l) => l !== null).join('\n');
+  const manual = mode === 'both' && (momo?.mtn || momo?.telecel || momo?.airteltigo) ? paymentInstructions(dueMinor, momo, currency) : null;
+  return manual ? `${pay}\n\nOr pay by hand:\n${manual}` : pay;
+}
+
+export function paymentReceivedText(r: { amountMinor: number; fullyPaid: boolean; orderNumber: number; balanceMinor: number }, currency: Currency = 'GHS'): string {
+  return r.fullyPaid
+    ? `Payment of ${formatMoney(r.amountMinor, currency)} received for order #${r.orderNumber}. Thank you!`
+    : `We received ${formatMoney(r.amountMinor, currency)} for order #${r.orderNumber}. ${formatMoney(r.balanceMinor, currency)} is still due.`;
+}
+
 /** Same as the web's duration(): 90 → "90 min", 120 → "2 hours", 43200 → "1 month". */
 export function formatDuration(minutes: number): string {
   const units: Array<[string, number]> = [['month', 43200], ['day', 1440], ['hour', 60]];

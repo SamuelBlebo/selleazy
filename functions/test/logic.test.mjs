@@ -223,3 +223,87 @@ test('coexistence: bot pauses after the owner replies from the phone', () => {
   assert.ok(!isBotPaused(pauseUntil(now, 30), now + 31 * 60000));
   assert.ok(!isBotPaused(null, now));
 });
+
+/* ------------------------- Paystack payment links ------------------------- */
+
+const { createHmac } = await import('node:crypto');
+const { verifyPaystackSignature } = require('../lib/billing/paystack.js');
+const L = require('../lib/payments/paystackLinks.js');
+const { howToPay } = require('../lib/whatsapp/copy.js');
+
+test('paystack: webhook signature must match the raw body and secret', () => {
+  const body = Buffer.from(JSON.stringify({ event: 'charge.success', data: { reference: 'se_1' } }));
+  const good = createHmac('sha512', 'sk_test_x').update(body).digest('hex');
+  assert.ok(verifyPaystackSignature(body, good, 'sk_test_x'));
+  assert.ok(!verifyPaystackSignature(body, good, 'sk_test_other'), 'wrong secret');
+  assert.ok(!verifyPaystackSignature(Buffer.from(body.toString().replace('se_1', 'se_2')), good, 'sk_test_x'), 'tampered body');
+  assert.ok(!verifyPaystackSignature(body, undefined, 'sk_test_x'), 'missing header');
+  assert.ok(!verifyPaystackSignature(body, 'abc', 'sk_test_x'), 'short header');
+});
+
+test('paystack: only a successful GHS charge for one of our orders counts', () => {
+  const ok = { status: 'success', reference: 'se_A', currency: 'GHS', amount: 10500, channel: 'mobile_money', metadata: { kind: 'order', orgId: 'o1', orderId: 'x1' } };
+  assert.deepEqual(L.checkOrderCharge(ok, 'se_A'), { ok: true, orgId: 'o1', orderId: 'x1', reference: 'se_A', amountMinor: 10500, method: 'momo' });
+  assert.equal(L.checkOrderCharge({ ...ok, metadata: JSON.stringify(ok.metadata) }, 'se_A').ok, true, 'metadata may arrive as a string');
+  assert.equal(L.checkOrderCharge({ ...ok, channel: 'card' }, 'se_A').method, 'card');
+  for (const [bad, why] of [
+    [{ ...ok, status: 'failed' }, 'failed charge'],
+    [{ ...ok, status: 'abandoned' }, 'abandoned'],
+    [{ ...ok, currency: 'NGN' }, 'wrong currency'],
+    [{ ...ok, reference: 'se_B' }, 'reference swapped'],
+    [{ ...ok, metadata: { orgId: 'o1', plan: 'pro' } }, 'a plan payment, not an order'],
+    [{ ...ok, amount: 0 }, 'zero amount'],
+  ]) assert.equal(L.checkOrderCharge(bad, 'se_A').ok, false, why);
+});
+
+test('paystack: the same reference always maps to the same payment (no double credit)', () => {
+  assert.equal(L.paystackPaymentId('se_abc_123'), L.paystackPaymentId('se_abc_123'));
+  assert.notEqual(L.paystackPaymentId('se_abc_123'), L.paystackPaymentId('se_abc_124'));
+  assert.doesNotMatch(L.paystackPaymentId('a/b c'), /[/ ]/, 'safe as a Firestore doc id');
+});
+
+test('paystack: paying the full amount confirms a pending order', () => {
+  const s = L.settle({ totalMinor: 10500, paidMinor: 0, status: 'pending' }, 10500);
+  assert.deepEqual([s.paymentState, s.fullyPaid, s.confirms, s.balanceMinor, s.flags], ['paid', true, true, 0, []]);
+  assert.equal(L.settle({ totalMinor: 10500, paidMinor: 0, status: 'ready' }, 10500).confirms, false, 'only pending orders are confirmed');
+});
+
+test('paystack: paying less than due leaves the order partially paid and flagged', () => {
+  const s = L.settle({ totalMinor: 10500, paidMinor: 0, status: 'pending' }, 6000);
+  assert.deepEqual([s.paymentState, s.fullyPaid, s.confirms, s.balanceMinor], ['partial', false, false, 4500]);
+  assert.deepEqual(s.flags, ['amount_mismatch']);
+  assert.deepEqual(L.settle({ totalMinor: 10500, paidMinor: 0, status: 'cancelled' }, 10500).flags, ['order_cancelled']);
+});
+
+test('paystack: fee added for the customer is not credited to the order', () => {
+  const { amountMinor, feeMinor } = L.payLinkAmount(10000, true);
+  assert.ok(amountMinor > 10000 && feeMinor === amountMinor - 10000);
+  // After Paystack takes 1.95% of what the customer paid, the merchant nets at least what was due.
+  assert.ok(amountMinor - Math.round((amountMinor * L.PAYSTACK_GH_FEE_BPS) / 10000) >= 10000);
+  assert.deepEqual(L.payLinkAmount(10000, false), { amountMinor: 10000, feeMinor: 0 });
+  const link = { reference: 'se_A', feeMinor };
+  assert.equal(L.creditFromCharge(amountMinor, 'se_A', link), 10000);
+  assert.equal(L.creditFromCharge(5000, 'se_OTHER', link), 5000, 'a different link: no fee to strip');
+  assert.equal(L.creditFromCharge(100, 'se_A', link), 0, 'never negative');
+});
+
+test('paystack: one reminder only while WhatsApp allows it', () => {
+  const now = 1_800_000_000_000;
+  const base = { nowMs: now, paymentState: 'unpaid', status: 'pending', lastInboundMs: now - 40 * 60000 };
+  assert.equal(L.reminderDecision(base), 'send');
+  assert.equal(L.reminderDecision({ ...base, paymentState: 'paid' }), 'skip_paid');
+  assert.equal(L.reminderDecision({ ...base, status: 'cancelled' }), 'skip_cancelled');
+  assert.equal(L.reminderDecision({ ...base, lastInboundMs: now - 25 * 3600000 }), 'skip_window');
+  assert.equal(L.reminderDecision({ ...base, lastInboundMs: null }), 'skip_window');
+});
+
+test('paystack: payment message shows the link, and MoMo numbers only in "both" mode', () => {
+  const momo = { mtn: '0244118802', accountName: 'Kate' };
+  const link = { url: 'https://checkout.paystack.com/abc', amountMinor: 10700, feeMinor: 200 };
+  const linkOnly = howToPay(10500, momo, link, 'link', 'GHS');
+  assert.match(linkOnly, /checkout\.paystack\.com\/abc/);
+  assert.match(linkOnly, /payment fee/);
+  assert.doesNotMatch(linkOnly, /0244118802/);
+  assert.match(howToPay(10500, momo, link, 'both', 'GHS'), /0244118802/);
+  assert.match(howToPay(10500, momo, null, 'link', 'GHS'), /Transaction ID/, 'no link: manual fallback');
+});

@@ -70,7 +70,11 @@ export function PaymentsPage() {
 const FLAG_TEXT = (p: Payment): string[] =>
   p.flags.map((f) =>
     f === 'amount_mismatch'
-      ? `Amount doesn't match. Due ${money(p.expectedMinor)}, customer says ${money(p.claimedMinor)}.`
+      ? p.source === 'provider'
+        ? `Paid ${money(p.claimedMinor)} online, but ${money(p.expectedMinor)} was due. Check the order balance.`
+        : `Amount doesn't match. Due ${money(p.expectedMinor)}, customer says ${money(p.claimedMinor)}.`
+      : f === 'order_cancelled'
+        ? 'Paid online for an order that was cancelled. You may need to refund the customer.'
       : f === 'duplicate_reference'
         ? `This Transaction ID was already used for order #${p.duplicateOfOrderNumber}. It may be an old receipt.`
         : `The customer didn't say how much. ${money(p.expectedMinor)} is due.`,
@@ -103,7 +107,7 @@ function PaymentCard({ p }: { p: WithId<Payment> }) {
     <article className="overflow-hidden rounded-2xl border border-line bg-surface">
       <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted">
         <span>{p.network ? NETWORK[p.network] : p.method} · {shortWhen(p.createdAt)} · #{p.orderNumber}</span>
-        {p.status === 'verified' ? <Badge tone="ok">Verified</Badge> : p.status === 'rejected' ? <Badge tone="danger">Rejected</Badge> : bad ? <Badge tone="danger">Check carefully</Badge> : <Badge tone="accent">To check</Badge>}
+        {p.source === 'provider' ? <Badge tone="ok">Paid online</Badge> : p.status === 'verified' ? <Badge tone="ok">Verified</Badge> : p.status === 'rejected' ? <Badge tone="danger">Rejected</Badge> : bad ? <Badge tone="danger">Check carefully</Badge> : <Badge tone="accent">To check</Badge>}
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
@@ -116,14 +120,14 @@ function PaymentCard({ p }: { p: WithId<Payment> }) {
         <dl className="my-3 grid grid-cols-2 rounded-lg border border-line">
           <div className="px-3 py-2.5"><dt className="cap text-muted">Due</dt><dd className="tabular mt-1 text-lg font-semibold">{money(p.expectedMinor)}</dd></div>
           <div className="border-l border-line px-3 py-2.5">
-            <dt className="cap text-muted">Customer says</dt>
+            <dt className="cap text-muted">{p.source === 'provider' ? 'Paid' : 'Customer says'}</dt>
             <dd className={`tabular mt-1 text-lg font-semibold ${p.flags.includes('amount_mismatch') ? 'text-danger' : ''}`}>{p.claimedMinor === null ? '—' : money(p.claimedMinor)}</dd>
           </div>
         </dl>
         {p.reference && (
           <div className="mb-3"><span className="text-[13px] text-muted">Transaction ID</span><p className="font-mono text-[15px] font-semibold tracking-wider">{p.reference}</p></div>
         )}
-        {p.status === 'submitted' && FLAG_TEXT(p).map((t) => (
+        {(p.status === 'submitted' || p.source === 'provider') && FLAG_TEXT(p).map((t) => (
           <p key={t} className="mb-2 flex gap-2 rounded-lg bg-danger-soft px-3 py-2 text-[13.5px] text-danger"><Icon name="alert" className="mt-0.5 h-4 w-4" />{t}</p>
         ))}
         {p.status === 'submitted' ? (
@@ -147,7 +151,7 @@ function PaymentCard({ p }: { p: WithId<Payment> }) {
             </div>
           )
         ) : (
-          <p className="text-[13px] text-muted">{p.status === 'verified' ? 'Verified' : `Rejected${p.rejectedReason ? `: ${p.rejectedReason}` : ''}`}{p.verifiedAt ? ` · ${shortWhen(p.verifiedAt)}` : ''}</p>
+          <p className="text-[13px] text-muted">{p.source === 'provider' ? 'Confirmed automatically by Paystack' : p.status === 'verified' ? 'Verified' : `Rejected${p.rejectedReason ? `: ${p.rejectedReason}` : ''}`}{p.verifiedAt ? ` · ${shortWhen(p.verifiedAt)}` : ''}</p>
         )}
       </div>
     </article>
